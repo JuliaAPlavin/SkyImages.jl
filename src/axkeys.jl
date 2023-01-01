@@ -23,11 +23,10 @@ WCSAxkeys(wcs, size) = WCSAxkeys{length(size),wcs.naxis,coordstype(wcs)}(wcs, si
 coordstype(axk::WCSAxkeys{NS,NW,CT}) where {NS,NW,CT} = CT
 
 Base.size(axk::WCSAxkeys) = (prod(axk.size),)
-function Base.getindex(axk::WCSAxkeys{NS,NW}, ix::Int) where {NS,NW}
-    pix = (Tuple(CartesianIndices(axk.size)[ix])..., ntuple(Returns(1), NW - NS)...)
-    world = WCS.pix_to_world(axk.wcs, collect(Float64, pix))
-    wrad = NTuple{NS}(@view world[1:NS]) .|> deg2rad
-    coordstype(axk)(wrad...)
+Base.getindex(axk::WCSAxkeys{NS,NW}, ix::Int) where {NS,NW} = @p begin
+    CartesianIndices(axk.size)[ix]
+    _pix_to_world(axk.wcs, __, Val(NS), Val(NW))
+    coordstype(axk)(__...)
 end
 
 
@@ -141,11 +140,8 @@ function boundingbox(::Type{CT}, axk::WCSAxkeys{NS,NW}) where {NS,NW,CT<:Abstrac
             CartesianIndex.(1:axk.size[1], 1);
             CartesianIndex.(1:axk.size[1], axk.size[2]);
         ]
-        map((Tuple(_)..., ntuple(Returns(1), NW - NS)...) .|> Float64)
-        reinterpret(reshape, Float64, __)
-        WCS.pix_to_world(axk.wcs, collect(__))
-        reinterpret(reshape, NTuple{NS,Float64}, @view __[1:NS, :])
-        map(coordstype(axk)(deg2rad.(_)...))
+        _pix_to_world(axk.wcs, __, Val(NS), Val(NW))
+        map(coordstype(axk)(_...))
         map(convert(CT, _))
     end
     lons = endpoints(Circular.sample_interval(lon.(edgepoints), 0..2π))
@@ -194,6 +190,10 @@ function _native_rect_image(A, axk::WCSAxkeys{NS,NW}) where {NS,NW}
     ))
     KeyedArray(data; axkeys...)
 end
+
+
+# some ad-hoc helpers
+_pix_to_world(wcs::WCS.WCSTransform, pix::Union{CartesianIndex, Tuple}, args...) = _pix_to_world(wcs, [pix], args...) |> only
 
 _pix_to_world(wcs::WCS.WCSTransform, pixs::AbstractArray{<:CartesianIndex}, args...) = @p begin
     pixs
