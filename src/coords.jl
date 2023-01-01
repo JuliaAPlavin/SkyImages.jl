@@ -1,5 +1,7 @@
 abstract type AbstractProjectedCoords <: AbstractSkyCoords end
 
+# allow projected coords with specified x/y axis direction (e.g. to make jet horizontal) ?
+
 struct ProjectedCoords{TC<:AbstractSkyCoords,T} <: AbstractProjectedCoords
     center::TC
     xy::NTuple{2,T}
