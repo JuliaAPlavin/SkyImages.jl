@@ -30,6 +30,10 @@ function Base.getindex(axk::WCSAxkeys{NS,NW}, ix::Int) where {NS,NW}
     coordstype(axk)(wrad...)
 end
 
+
+AxisKeys.findindex(sel, axk::WCSAxkeys) = error("Selector $sel not implemented")
+AxisKeys.findindex(sel::Near{<:AbstractSkyCoords}, axk::WCSAxkeys) = AxisKeys.findindex([sel], axk) |> only
+
 # world_to_pix has a constant overhead of a few μs, this batch method calls it only once
 function AxisKeys.findindex(sels::AbstractArray{<:Near{<:AbstractSkyCoords}}, axk::WCSAxkeys{NS,NW}) where {NS,NW}
     worlds = map(sels) do sel
@@ -102,6 +106,8 @@ function Base.getindex(h::HealpixAxkeys, ix::Int)
     return coordstype(h)(ra, Healpix.colat2lat(codec))
 end
 
+AxisKeys.findindex(sel, axk::HealpixAxkeys) = error("Selector $sel not implemented")
+
 function AxisKeys.findindex(sel::Near{<:AbstractSkyCoords}, h::HealpixAxkeys)
     valc = convert(coordstype(h), sel.val)
     _ang2pix(h, Healpix.lat2colat(SkyCoords.lat(valc)), mod2pi(SkyCoords.lon(valc)))
@@ -121,9 +127,6 @@ end
 
 
 
-
-
-AxisKeys.findindex(sel::Near{<:AbstractSkyCoords}, axk::Union{WCSAxkeys, HealpixAxkeys}) = AxisKeys.findindex([sel], axk) |> only
 
 
 boundingbox(axk) = boundingbox(coordstype(axk), axk)
