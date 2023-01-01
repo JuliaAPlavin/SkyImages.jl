@@ -61,7 +61,7 @@ end
     @test_throws MethodError CoordsRectangle(ICRSCoords(0.1, -0.2), GalCoords(0.2, 0))
 end
 
-@testset "simple image" begin
+@testset "fits wcs image" begin
     simg = SkyImages.load("./data/vlass.fits")
     @test size(simg) == (5329,)
 
@@ -70,29 +70,62 @@ end
     @test eltype(axiskeys(simg, :coords)) === ICRSCoords{Float64}
     @test simg[123] ≈ -0.001051501
     for coo in [coo, convert(GalCoords, coo)]
-        @test simg(Near(coo)) ≈ -0.001051501
-        @test simg(Near.([coo])) ≈ [-0.001051501]
-        @test simg(Interp(coo; order=0)) ≈ -0.001051501
-        @test simg(Interp.([coo]; order=0)) ≈ [-0.001051501]
-        @test simg(Interp(coo; order=1)) ≈ -0.001051501  atol=1e-9
-        @test simg(Interp.([coo]; order=1)) ≈ [-0.001051501]  atol=1e-9
+        @test simg(Near(coo)) ≈ simg[123]
+        @test simg(Near.([coo])) ≈ [simg[123]]
+        @test simg(Interp(coo; order=0)) ≈ simg[123]
+        @test simg(Interp.([coo]; order=0)) ≈ [simg[123]]
+        @test simg(Interp(coo; order=1)) ≈ simg[123]  atol=1e-9
+        @test simg(Interp.([coo]; order=1)) ≈ [simg[123]]  atol=1e-9
     end
 
     coo = ICRSCoords(3.276022, 0.216095)
     for coo in [coo, convert(GalCoords, coo)]
-        @test simg(Near(coo)) ≈ -0.001051501
-        @test simg(Near.([coo])) ≈ [-0.001051501]
-        @test simg(Interp(coo; order=0)) ≈ -0.001051501
-        @test simg(Interp.([coo]; order=0)) ≈ [-0.001051501]
+        @test simg(Near(coo)) ≈ simg[123]
+        @test simg(Near.([coo])) ≈ [simg[123]]
+        @test simg(Interp(coo; order=0)) ≈ simg[123]
+        @test simg(Interp.([coo]; order=0)) ≈ [simg[123]]
         @test simg(Interp(coo; order=1)) ≈ -0.0002471391390044121
         @test simg(Interp.([coo]; order=1)) ≈ [-0.0002471391390044121]
     end
 
+    @test_throws ErrorException simg(ICRSCoords(0.1, 0.2))
+    @test_throws ErrorException simg(123)
+    @test_throws MethodError simg(>(123))
+
     bbox = boundingbox(axiskeys(simg, :coords))
     @test bbox ≈ CoordsRectangle(ICRSCoords(3.2759086803666007, 0.2160905200843189), ICRSCoords(3.276266122858064, 0.21643963719077577))
-    @test boundingbox(GalCoords, axiskeys(simg, :coords)).a ≈ GalCoords{Float64}(4.952041833684394, 1.2998966486360135)
+    @test boundingbox(ICRSCoords, axiskeys(simg, :coords)) == bbox
+    @test boundingbox(GalCoords, axiskeys(simg, :coords)).a ≈ GalCoords(4.952041833684394, 1.2998966486360135)
     @test convert(ICRSCoords, boundingbox(ProjectedCoords, axiskeys(simg, :coords)).a) ≈ bbox.a
-    @test convert(GalCoords, boundingbox(ProjectedCoords{GalCoords}, axiskeys(simg, :coords)).a) ≈ GalCoords{Float64}(4.952041833684394, 1.2998966486360135)
+    @test convert(GalCoords, boundingbox(ProjectedCoords{GalCoords}, axiskeys(simg, :coords)).a) ≈ GalCoords(4.952041833684394, 1.2998966486360135)
+end
+
+
+@testset "healpix image" begin
+    simg = SkyImages.load("./data/Halpha_fwhm06_1024.fits")
+    @test size(simg) == (12582912,)
+
+    coo = GalCoords(0.7892331153671623, 0.0130212012913129)
+    @test axiskeys(simg, :coords)[123] ≈ coo
+    @test eltype(axiskeys(simg, :coords)) === GalCoords{Float64}
+    @test simg[123] ≈ 4.056696891784668
+    for coo in [coo, convert(ICRSCoords, coo)]
+        @test simg(Near(coo)) ≈ simg[123]
+        @test simg(Near.([coo])) ≈ [simg[123]]
+        @test_broken simg(Interp(coo; order=0)) ≈ simg[123]
+        @test_broken simg(Interp.([coo]; order=0)) ≈ [simg[123]]
+        @test_broken simg(Interp(coo; order=1)) ≈ simg[123]  atol=1e-9
+        @test_broken simg(Interp.([coo]; order=1)) ≈ [simg[123]]  atol=1e-9
+    end
+
+    @test_throws ErrorException simg(ICRSCoords(0.1, 0.2))
+    @test_throws ErrorException simg(123)
+    @test_throws MethodError simg(>(123))
+
+    bbox = boundingbox(axiskeys(simg, :coords))
+    @test bbox ≈ CoordsRectangle(GalCoords(0.0, -1.5707963267948966), GalCoords(6.283185307179586, 1.5707963267948966))
+    @test boundingbox(GalCoords, axiskeys(simg, :coords)) == bbox
+    @test boundingbox(GalCoords, axiskeys(simg, :coords)).a ≈ GalCoords(0.0, -1.5707963267948966)
 end
 
 

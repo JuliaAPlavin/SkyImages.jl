@@ -52,8 +52,7 @@ function AxisKeys.findindex(sels::AbstractArray{<:Near{<:AbstractSkyCoords}}, ax
     end
 end
 
-AxisKeys.getkey(A, sels::Interp{<:AbstractSkyCoords}) = AxisKeys.getkey(A, [sels]) |> only
-AxisKeys.getkey(A, sels::AbstractArray{<:Interp{<:AbstractSkyCoords}}) = _getkey(A, sels, only(axiskeys(A)))
+_getkey(A, sels::Interp{<:AbstractSkyCoords}, axk::WCSAxkeys) = _getkey(A, [sels], axk) |> only
 
 # world_to_pix has a constant overhead of a few μs, this batch method calls it only once
 function _getkey(A, sels::AbstractArray{<:Interp{<:AbstractSkyCoords}}, axk::WCSAxkeys{NS,NW}) where {NS,NW}
@@ -107,16 +106,11 @@ function Base.getindex(h::HealpixAxkeys, ix::Int)
 end
 
 AxisKeys.findindex(sel, axk::HealpixAxkeys) = error("Selector $sel not implemented")
+AxisKeys.findindex(sel::AbstractArray{<:Near{<:AbstractSkyCoords}}, axk::HealpixAxkeys) = AxisKeys.findindex.(sel, Ref(axk))
 
 function AxisKeys.findindex(sel::Near{<:AbstractSkyCoords}, h::HealpixAxkeys)
     valc = convert(coordstype(h), sel.val)
     _ang2pix(h, Healpix.lat2colat(SkyCoords.lat(valc)), mod2pi(SkyCoords.lon(valc)))
-end
-
-function AxisKeys.findindex(sel::Near{<:Union{NTuple{2},AbstractVector}}, h::HealpixAxkeys)
-    @assert length(sel.val) == 2
-    lon, lat = sel.val
-    _ang2pix(h, Healpix.lat2colat(lat), mod2pi(lon))
 end
 
 # function Base.findall(sel::Base.Fix2{typeof(∈), <:Disk}, h::HealpixAxkeys{Healpix.RingOrder})
@@ -126,6 +120,9 @@ end
 # end
 
 
+
+AxisKeys.getkey(A, sel::Interp{<:AbstractSkyCoords}) = _getkey(A, sel, only(axiskeys(A)))
+AxisKeys.getkey(A, sel::AbstractArray{<:Interp{<:AbstractSkyCoords}}) = _getkey(A, sel, only(axiskeys(A)))
 
 
 
