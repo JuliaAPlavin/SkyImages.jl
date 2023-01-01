@@ -39,9 +39,16 @@ function load(path)
     end
 end
 
-function eval_at_coords(img, coords)
-    @modify(vec(coords)) do xs
-        img(Near.(xs))
+function eval_at_coords(img, coords; order=nothing, kwargs...)
+    if isnothing(order)
+        @assert isempty(kwargs)
+        @modify(vec(coords)) do xs
+            img(Near.(xs))
+        end
+    else
+        @modify(vec(coords)) do xs
+            img(Interp.(xs; order, kwargs...))
+        end
     end
 end
 
