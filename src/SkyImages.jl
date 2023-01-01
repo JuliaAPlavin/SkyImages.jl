@@ -55,6 +55,17 @@ end
 
 
 
+# https://github.com/JuliaAstro/WCS.jl/pull/46
+function ConstructionBase.setproperties(obj::WCS.WCSTransform, patch::NamedTuple)
+    res = deepcopy(obj)
+    for (k, v) in pairs(patch)
+        setproperty!(res, k, v)
+    end
+    return res
+end
+
+
+
 # piracy - to be upstreamed?
 AxisKeys.keys_view(keys::Tuple, inds::Tuple{<:AbstractArray}) = ()
 AxisKeys.keys_view(keys::Tuple, inds::Tuple{<:KeyedArray}) = axiskeys(only(inds))
