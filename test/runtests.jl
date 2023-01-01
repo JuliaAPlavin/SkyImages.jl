@@ -102,6 +102,10 @@ end
 
 
 @testset "healpix image" begin
+    if !isfile("./data/Halpha_fwhm06_1024.fits")
+        @warn "Cannot test healpix: image file not found"
+        return
+    end
     simg = SkyImages.load("./data/Halpha_fwhm06_1024.fits")
     @test size(simg) == (12582912,)
 
