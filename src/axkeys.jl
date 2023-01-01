@@ -170,3 +170,42 @@ function boundingbox(::Type{CT}, axk::WCSAxkeys{NS,NW}) where {NS,NW,CT<:Project
     origin = convert(parent_coords_type(CT), coordstype(axk)(deg2rad.(axk.wcs.crval[1:NS])...))
     project(origin, bbox)
 end
+
+
+
+native_rect_image(A::KeyedArray) = _native_rect_image(A, only(axiskeys(A)))
+
+function _native_rect_image(A, axk::WCSAxkeys{NS,NW}) where {NS,NW}
+    data = reshape(A, axk.size)
+    axworld = (
+        @p( tuple.(1:axk.size[1], axk.wcs.crpix[2]) |> _pix_to_world(axk.wcs, __, Val(NS), Val(NW)) ),
+        @p( tuple.(axk.wcs.crpix[1], 1:axk.size[2]) |> _pix_to_world(axk.wcs, __, Val(NS), Val(NW)) ),
+    )
+    names = if is_ax_separable(axk.wcs, 1) && is_ax_separable(axk.wcs, 2)
+        @assert @p axworld[1] |> map(_[2]) |> allequal
+        @assert @p axworld[2] |> map(_[1]) |> allequal
+        fieldnames(coordstype(axk.wcs))
+    else
+        (:x, :y)
+    end
+    axkeys = NamedTuple{names}((
+        getindex.(axworld[1], 1) |> Circular.unwrap,
+        getindex.(axworld[2], 2),
+    ))
+    KeyedArray(data; axkeys...)
+end
+
+_pix_to_world(wcs::WCS.WCSTransform, pixs::AbstractArray{<:CartesianIndex}, args...) = @p begin
+    pixs
+    map(Tuple)
+    _pix_to_world(wcs, __, args...)
+end
+
+_pix_to_world(wcs::WCS.WCSTransform, pixs::AbstractArray{<:Tuple{Vararg{<:Number}}}, ::Val{NS}, ::Val{NW}) where {NS,NW} = @p begin
+    pixs
+    map((_..., ntuple(Returns(1), NW - NS)...) .|> Float64)
+    reinterpret(reshape, Float64, __)
+    WCS.pix_to_world(wcs, collect(__))
+    reinterpret(reshape, NTuple{NS,Float64}, @view __[1:NS, :])
+    map(deg2rad.(_))
+end
