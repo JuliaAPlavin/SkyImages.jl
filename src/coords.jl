@@ -20,3 +20,6 @@ function project(center::AbstractSkyCoords, c::AbstractSkyCoords)
     xy = (Δlon * cos(lat(center)), lat(cc) - lat(center))
     ProjectedCoords(center, xy)
 end
+
+SkyCoords.lon(c::ProjectedCoords) = lon(c.center) + c.xy[1] / cos(lat(c.center))
+SkyCoords.lat(c::ProjectedCoords) = lat(c.center) + c.xy[2]
