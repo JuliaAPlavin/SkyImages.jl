@@ -154,10 +154,15 @@ function boundingbox(::Type{CT}, axk::WCSAxkeys{NS,NW}) where {NS,NW,CT<:Abstrac
     rect = CoordsRectangle(corners...)
 end
 
-function boundingbox(::Type{ProjectedCoords}, axk::WCSAxkeys{NS,NW}) where {NS,NW}
-    bbox = boundingbox(axk)
-    origin = coordstype(axk)(deg2rad.(axk.wcs.crval[1:NS])...)
-    project(origin, bbox)
+
+boundingbox(::Type{ProjectedCoords}, axk::WCSAxkeys) = boundingbox(ProjectedCoords{coordstype(axk)}, axk)
+boundingbox(::Type{ProjectedCoordsS}, axk::WCSAxkeys) = boundingbox(ProjectedCoordsS{coordstype(axk)}, axk)
+
+boundingbox(::Type{CT}, axk::WCSAxkeys) where {CT <: ProjectedCoordsS} = @p begin
+    boundingbox(ProjectedCoords{parent_coords_type(CT)}, axk)
+    @modify(__ |> Properties()) do c
+        convert(ProjectedCoordsS, c)
+    end
 end
 
 function boundingbox(::Type{CT}, axk::WCSAxkeys{NS,NW}) where {NS,NW,CT<:ProjectedCoords}

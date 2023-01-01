@@ -13,7 +13,7 @@ import WCS
 import Healpix
 import RectiGrids
 
-export ProjectedCoords, eval_at_coords, boundingbox
+export ProjectedCoords, ProjectedCoordsS, eval_at_coords, boundingbox
 
 
 include("coords.jl")

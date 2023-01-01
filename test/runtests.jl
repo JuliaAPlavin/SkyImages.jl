@@ -107,8 +107,14 @@ keyarr_equal(a, b) = a == b && named_axiskeys(a) == named_axiskeys(b)
     @test bbox ≈ CoordsRectangle(ICRSCoords(3.2759086803666007, 0.2160905200843189), ICRSCoords(3.276266122858064, 0.21643963719077577))
     @test boundingbox(ICRSCoords, axiskeys(simg, :coords)) == bbox
     @test boundingbox(GalCoords, axiskeys(simg, :coords)).a ≈ GalCoords(4.952041833684394, 1.2998966486360135)
+    @test origin(boundingbox(ProjectedCoords, axiskeys(simg, :coords)).a) == ICRSCoords(3.2754172865266287, 0.21816560027821555)
+    @test origin(boundingbox(ProjectedCoords{GalCoords}, axiskeys(simg, :coords)).a) == GalCoords(4.948374097930593, 1.301730846325406)
+    @test origin(boundingbox(ProjectedCoordsS, axiskeys(simg, :coords)).a) == ICRSCoords(3.2754172865266287, 0.21816560027821555)
+    @test origin(boundingbox(ProjectedCoordsS{GalCoords}, axiskeys(simg, :coords)).a) == GalCoords(4.948374097930593, 1.301730846325406)
     @test convert(ICRSCoords, boundingbox(ProjectedCoords, axiskeys(simg, :coords)).a) ≈ bbox.a
     @test convert(GalCoords, boundingbox(ProjectedCoords{GalCoords}, axiskeys(simg, :coords)).a) ≈ GalCoords(4.952041833684394, 1.2998966486360135)
+    @test convert(ICRSCoords, boundingbox(ProjectedCoordsS, axiskeys(simg, :coords)).a) ≈ bbox.a
+    @test convert(GalCoords, boundingbox(ProjectedCoordsS{GalCoords}, axiskeys(simg, :coords)).a) ≈ GalCoords(4.952041833684394, 1.2998966486360135)
 end
 
 
