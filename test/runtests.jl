@@ -7,8 +7,6 @@ using TestItemRunner
     using SkyImages: project, origin
     using SkyCoords
 
-    Base.isapprox(a::T, b::T; kwargs...) where {T <: AbstractSkyCoords} = isapprox(SkyCoords.lon(a), SkyCoords.lon(b); kwargs...) && isapprox(SkyCoords.lat(a), SkyCoords.lat(b); kwargs...)
-
     c0 = ICRSCoords(0.1, -0.2)
     c1 = ICRSCoords(0.1 + 1e-5, -0.2 + 3e-5)
     cp = project(c0, c1)::ProjectedCoords
@@ -35,8 +33,6 @@ end
     using SkyImages: CoordsRectangle, project
     using SkyCoords
     using RectiGrids
-
-    Base.isapprox(a::T, b::T; kwargs...) where {T <: AbstractSkyCoords} = isapprox(SkyCoords.lon(a), SkyCoords.lon(b); kwargs...) && isapprox(SkyCoords.lat(a), SkyCoords.lat(b); kwargs...)
 
     r = CoordsRectangle(ICRSCoords(0.1, -0.2), ICRSCoords(0.2, 0))
     @test ICRSCoords(0.1, -0.2) ∈ r

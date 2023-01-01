@@ -42,3 +42,5 @@ end
 
 SkyCoords.lon(c::AbstractProjectedCoords) = lon(origin(c)) + c.xy[1] / cos(lat(origin(c)))
 SkyCoords.lat(c::AbstractProjectedCoords) = lat(origin(c)) + c.xy[2]
+
+Base.isapprox(a::ProjectedCoords, b::ProjectedCoords; kwargs...) = isapprox(SkyCoords.SVector(lon(a), lat(a)), SkyCoords.SVector(lon(b), lat(b)); kwargs...)
