@@ -140,7 +140,8 @@ function boundingbox(::Type{CT}, akx::WCSAxkeys{NS,NW}) where {NS,NW,CT<:Abstrac
         reinterpret(reshape, Float64, __)
         WCS.pix_to_world(akx.wcs, collect(__))
         reinterpret(reshape, NTuple{NS,Float64}, @view __[1:NS, :])
-        map(CT(deg2rad.(_)...))
+        map(coordstype(akx)(deg2rad.(_)...))
+        map(convert(CT, _))
     end
     lons = endpoints(Circular.sample_interval(lon.(edgepoints), 0..2π))
     lats = extrema(lat.(edgepoints))
