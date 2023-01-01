@@ -10,6 +10,7 @@ struct ProjectedCoordsS{C,T} <: AbstractProjectedCoords
 end
 
 ProjectedCoordsS{C}(xy) where {C} = ProjectedCoordsS{C, eltype(xy)}(xy)
+ConstructionBase.constructorof(::Type{<:ProjectedCoordsS{C}}) where {C} = ProjectedCoordsS{C} ∘ tuple
 
 parent_coords_type(::Type{<:ProjectedCoords{TC}}) where {TC} = TC
 parent_coords_type(::Type{<:ProjectedCoordsS{TC}}) where {TC <: AbstractSkyCoords} = TC

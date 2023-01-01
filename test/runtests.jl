@@ -47,10 +47,16 @@ end
 
     c0 = ICRSCoords(0.11, -0.21)
     rp = project(c0, r)
-    @test rp.a == project(c0, r.a)
-    @test rp.b == project(c0, r.b)
+    @test rp.a === project(c0, r.a)
+    @test rp.b === project(c0, r.b)
     gp = grid(rp; lengths=3)
     @test all(collect(gp) .≈ collect(project.(Ref(c0), grid(r; lengths=3))))
+
+    rps = project(Val(c0), r)
+    @test rps.a === project(Val(c0), r.a)
+    @test rps.b === project(Val(c0), r.b)
+    gps = grid(rps; lengths=3)
+    @test all(collect(gps) .≈ collect(project.(Val(c0), grid(r; lengths=3))))
 
     r = CoordsRectangle(GalCoords(0.1, -0.2), GalCoords(0.2, 0))
     g = grid(r; lengths=3)

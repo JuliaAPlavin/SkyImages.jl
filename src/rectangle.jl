@@ -25,13 +25,17 @@ function RectiGrids.grid(r::CoordsRectangle{T}; lengths) where {T}
 end
 
 function RectiGrids.grid(r::CoordsRectangle{T}; lengths) where {T<:ProjectedCoords}
-    @assert r.a.center == r.b.center
+    @assert origin(r.a) === origin(r.b)
     lons = range(r.a.xy[1], r.b.xy[1]; length=first(lengths))
     lats = range(r.a.xy[2], r.b.xy[2]; length=last(lengths))
     map(xy -> ProjectedCoords(r.a.center, xy),
-        RectiGrids.grid(
-            Tuple;
-            NamedTuple{fieldnames(parent_coords_type(T))}((lons, lats))...
-        )
+        RectiGrids.grid(Tuple; NamedTuple{fieldnames(parent_coords_type(T))}((lons, lats))...)
     )
+end
+
+function RectiGrids.grid(r::CoordsRectangle{T}; lengths) where {T<:ProjectedCoordsS}
+    @assert origin(r.a) === origin(r.b)
+    lons = range(r.a.xy[1], r.b.xy[1]; length=first(lengths))
+    lats = range(r.a.xy[2], r.b.xy[2]; length=last(lengths))
+    RectiGrids.grid(T; NamedTuple{fieldnames(parent_coords_type(T))}((lons, lats))...)
 end

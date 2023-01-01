@@ -1,5 +1,6 @@
 module SkyImages
 
+import ConstructionBase
 using AccessorsExtra
 using DataPipes
 using AxisKeys
