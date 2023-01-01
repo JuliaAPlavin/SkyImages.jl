@@ -1,5 +1,5 @@
 using SkyImages
-using SkyImages: CoordsRectangle, project
+using SkyImages: CoordsRectangle, project, Interp
 using RectiGrids
 using SkyCoords
 using AxisKeys
@@ -22,6 +22,10 @@ end
 
 @testset "rectangle" begin
     r = CoordsRectangle(ICRSCoords(0.1, -0.2), ICRSCoords(0.2, 0))
+    @test ICRSCoords(0.1, -0.2) ∈ r
+    @test ICRSCoords(0.15, -0.15) ∈ r
+    @test ICRSCoords(0.15, -0.25) ∉ r
+
     g = grid(r; lengths=3)
     @test size(g) == (3, 3)
     @test g[2, 2] == ICRSCoords(0.15, -0.1)
@@ -37,7 +41,45 @@ end
     @test g[2, 2] == GalCoords(0.15, -0.1)
     @test named_axiskeys(g) == (l=[0.1, 0.15, 0.2], b=[-0.2, -0.1, 0])
 
+    r = SkyImages.CoordsRectangle(ICRSCoords(5, 0.5), ICRSCoords(7, 1.3))
+    g = grid(r; lengths=3)
+    @test size(g) == (3, 3)
+    @test g[2, 2] == ICRSCoords(6, 0.9)
+    @test named_axiskeys(g) == (ra=[5, 6, 7], dec=[0.5, 0.9, 1.3])
+    @test ICRSCoords(5, 1) ∈ r
+    @test ICRSCoords(6, 1) ∈ r
+    @test ICRSCoords(7, 1) ∈ r
+    @test ICRSCoords(4, 1) ∉ r
+
     @test_throws MethodError CoordsRectangle(ICRSCoords(0.1, -0.2), GalCoords(0.2, 0))
+end
+
+@testset "simple image" begin
+    simg = SkyImages.load("./data/vlass.fits")
+    @test size(simg) == (5329,)
+
+    coo = ICRSCoords(3.2760228432272003, 0.21609540562015125)
+    @test axiskeys(simg, :coords)[123] ≈ coo
+    @test eltype(axiskeys(simg, :coords)) === ICRSCoords{Float64}
+    @test simg[123] ≈ -0.001051501
+    for coo in [coo, convert(GalCoords, coo)]
+        @test simg(Near(coo)) ≈ -0.001051501
+        @test simg(Near.([coo])) ≈ [-0.001051501]
+        @test simg(Interp(coo; order=0)) ≈ -0.001051501
+        @test simg(Interp.([coo]; order=0)) ≈ [-0.001051501]
+        @test simg(Interp(coo; order=1)) ≈ -0.001051501  atol=1e-9
+        @test simg(Interp.([coo]; order=1)) ≈ [-0.001051501]  atol=1e-9
+    end
+
+    coo = ICRSCoords(3.276022, 0.216095)
+    for coo in [coo, convert(GalCoords, coo)]
+        @test simg(Near(coo)) ≈ -0.001051501
+        @test simg(Near.([coo])) ≈ [-0.001051501]
+        @test simg(Interp(coo; order=0)) ≈ -0.001051501
+        @test simg(Interp.([coo]; order=0)) ≈ [-0.001051501]
+        @test simg(Interp(coo; order=1)) ≈ -0.0002471391390044121
+        @test simg(Interp.([coo]; order=1)) ≈ [-0.0002471391390044121]
+    end
 end
 
 
