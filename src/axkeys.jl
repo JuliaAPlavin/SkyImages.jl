@@ -48,6 +48,7 @@ function AxisKeys.findindex(sels::AbstractArray{<:Near{<:AbstractSkyCoords}}, ax
     end
 end
 
+AxisKeys.getkey(A, sels::Interp{<:AbstractSkyCoords}) = AxisKeys.getkey(A, [sels]) |> only
 AxisKeys.getkey(A, sels::AbstractArray{<:Interp{<:AbstractSkyCoords}}) = _getkey(A, sels, only(axiskeys(A)))
 
 # world_to_pix has a constant overhead of a few μs, this batch method calls it only once
