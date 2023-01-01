@@ -20,7 +20,8 @@ using TestItemRunner
     @test cp == cp
     @test cp ≈ cp
 
-    cps = project(Val(c0), c1)::ProjectedCoordsS
+    @test project(Val(c0), c1) isa ProjectedCoordsS  # deprecated
+    cps = project(Val(c0), c1)::ProjectedCoords{<:Val}
     @test origin(cps) == c0
     @test cps.xy[1] ≈ 0.98 * 1e-5  rtol=1e-4
     @test cps.xy[2] ≈ 3e-5
@@ -34,6 +35,8 @@ end
     using SkyImages: CoordsRectangle, project
     using SkyCoords
     using RectiGrids
+
+    Base.isapprox(a::T, b::T; kwargs...) where {T <: AbstractSkyCoords} = isapprox(SkyCoords.lon(a), SkyCoords.lon(b); kwargs...) && isapprox(SkyCoords.lat(a), SkyCoords.lat(b); kwargs...)
 
     r = CoordsRectangle(ICRSCoords(0.1, -0.2), ICRSCoords(0.2, 0))
     @test ICRSCoords(0.1, -0.2) ∈ r
@@ -124,12 +127,19 @@ end
     @test boundingbox(GalCoords, axiskeys(simg, :coords)).a ≈ GalCoords(4.952041833684394, 1.2998966486360135)
     @test origin(boundingbox(ProjectedCoords, axiskeys(simg, :coords)).a) == ICRSCoords(3.2754172865266287, 0.21816560027821555)
     @test origin(boundingbox(ProjectedCoords{GalCoords}, axiskeys(simg, :coords)).a) == GalCoords(4.948374097930593, 1.301730846325406)
-    @test origin(boundingbox(ProjectedCoordsS, axiskeys(simg, :coords)).a) == ICRSCoords(3.2754172865266287, 0.21816560027821555)
-    @test origin(boundingbox(ProjectedCoordsS{GalCoords}, axiskeys(simg, :coords)).a) == GalCoords(4.948374097930593, 1.301730846325406)
+    @test origin(boundingbox(ProjectedCoords{Val}, axiskeys(simg, :coords)).a) == ICRSCoords(3.2754172865266287, 0.21816560027821555)
+    @test origin(boundingbox(ProjectedCoords{Val{GalCoords}}, axiskeys(simg, :coords)).a) == GalCoords(4.948374097930593, 1.301730846325406)
     @test convert(ICRSCoords, boundingbox(ProjectedCoords, axiskeys(simg, :coords)).a) ≈ bbox.a
     @test convert(GalCoords, boundingbox(ProjectedCoords{GalCoords}, axiskeys(simg, :coords)).a) ≈ GalCoords(4.952041833684394, 1.2998966486360135)
+    @test convert(ICRSCoords, boundingbox(ProjectedCoords{Val}, axiskeys(simg, :coords)).a) ≈ bbox.a
+    @test convert(GalCoords, boundingbox(ProjectedCoords{Val{GalCoords}}, axiskeys(simg, :coords)).a) ≈ GalCoords(4.952041833684394, 1.2998966486360135)
+
+    # deprecated:
+    @test origin(boundingbox(ProjectedCoordsS, axiskeys(simg, :coords)).a) == ICRSCoords(3.2754172865266287, 0.21816560027821555)
+    @test origin(boundingbox(ProjectedCoordsS{GalCoords}, axiskeys(simg, :coords)).a) == GalCoords(4.948374097930593, 1.301730846325406)
     @test convert(ICRSCoords, boundingbox(ProjectedCoordsS, axiskeys(simg, :coords)).a) ≈ bbox.a
     @test convert(GalCoords, boundingbox(ProjectedCoordsS{GalCoords}, axiskeys(simg, :coords)).a) ≈ GalCoords(4.952041833684394, 1.2998966486360135)
+
 
     rimg = native_rect_image(simg)
     @test named_axiskeys(rimg).ra ≈ 3.276266446383939:-4.965847587640799e-6:3.2759089053576287

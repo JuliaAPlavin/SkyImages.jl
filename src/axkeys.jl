@@ -126,6 +126,7 @@ AxisKeys.getkey(A, sel::AbstractArray{<:Interp{<:AbstractSkyCoords}}) = _getkey(
 
 
 boundingbox(axk) = boundingbox(coordstype(axk), axk)
+boundingbox(::Type{Any}, axk) = boundingbox(axk)
 
 function boundingbox(::Type{CT}, ::HealpixAxkeys) where {CT}
     corners = (CT(0, -π / 2), CT(2π, π / 2))
@@ -152,12 +153,12 @@ end
 
 
 boundingbox(::Type{ProjectedCoords}, axk::WCSAxkeys) = boundingbox(ProjectedCoords{coordstype(axk)}, axk)
-boundingbox(::Type{ProjectedCoordsS}, axk::WCSAxkeys) = boundingbox(ProjectedCoordsS{coordstype(axk)}, axk)
+boundingbox(::Type{ProjectedCoords{Val}}, axk::WCSAxkeys) = boundingbox(ProjectedCoords{Val{coordstype(axk)}}, axk)
 
-boundingbox(::Type{CT}, axk::WCSAxkeys) where {CT <: ProjectedCoordsS} = @p begin
+boundingbox(::Type{CT}, axk::WCSAxkeys) where {CT <: ProjectedCoords{<:Val}} = @p begin
     boundingbox(ProjectedCoords{parent_coords_type(CT)}, axk)
     @modify(__ |> Properties()) do c
-        convert(ProjectedCoordsS, c)
+        convert(ProjectedCoords{Val}, c)
     end
 end
 

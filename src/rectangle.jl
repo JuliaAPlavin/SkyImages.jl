@@ -33,7 +33,7 @@ function RectiGrids.grid(r::CoordsRectangle{T}; lengths) where {T<:ProjectedCoor
     )
 end
 
-function RectiGrids.grid(r::CoordsRectangle{T}; lengths) where {T<:ProjectedCoordsS}
+function RectiGrids.grid(r::CoordsRectangle{T}; lengths) where {T<:ProjectedCoords{<:Val}}
     @assert origin(r.a) === origin(r.b)
     lons = range(r.a.xy[1], r.b.xy[1]; length=first(lengths))
     lats = range(r.a.xy[2], r.b.xy[2]; length=last(lengths))
