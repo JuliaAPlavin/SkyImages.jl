@@ -21,7 +21,7 @@ Base.isapprox(a::T, b::T; kwargs...) where {T <: CoordsRectangle} = isapprox(a.a
 function RectiGrids.grid(r::CoordsRectangle{T}; lengths) where {T}
     lons = range(lon(r.a), lon(r.b) + (is_lon_wrap(r) ? 2π : 0); length=first(lengths))
     lats = range(lat(r.a), lat(r.b); length=last(lengths))
-    map(Base.splat(T), RectiGrids.grid(; NamedTuple{fieldnames(T)}((lons, lats))...))
+    RectiGrids.grid(T; NamedTuple{fieldnames(T)}((lons, lats))...)
 end
 
 function RectiGrids.grid(r::CoordsRectangle{T}; lengths) where {T<:ProjectedCoords}
