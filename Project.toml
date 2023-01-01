@@ -13,7 +13,7 @@ SkyCoords = "fc659fc5-75a3-5475-a2ea-3da92c065361"
 WCS = "15f3aee2-9e10-537f-b834-a6fb8bdb944d"
 
 [compat]
-AccessorsExtra = "0.1.5"
+AccessorsExtra = "0.1.6"
 AxisKeys = "0.2.4"
 FITSIO = "0.16.12"
 Healpix = "4.0.1"

@@ -36,7 +36,7 @@ function load(path)
 end
 
 function eval_at_coords(img, coords)
-    @modify(vec(AxisKeys.keyless_unname(coords))) do xs
+    @modify(vec(coords)) do xs
         img(Near.(xs))
     end
 end

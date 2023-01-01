@@ -34,7 +34,7 @@ function AxisKeys.findindex(sels::AbstractArray{<:Near{<:AbstractSkyCoords}}, w:
     pixs_vec_full = WCS.world_to_pix(w.wcs, collect(reinterpret(reshape, Float64, vec(worlds))))
     pixs_vec = reinterpret(reshape, NTuple{NS,Float64}, @view pixs_full[1:NS, :])
 
-    pixs = @set vec(AxisKeys.keyless_unname(sels)) = pixs_vec
+    pixs = @set vec(sels) = pixs_vec
     map(pixs) do pix
         pix_i = clamp.(round.(Int, pix), (:).(1, w.size))
         LinearIndices(w.size)[CartesianIndex(pix_i)]
@@ -112,15 +112,11 @@ end
 function boundingbox(::Type{ProjectedCoords}, axk::WCSAxkeys{NS,NW}) where {NS,NW}
     bbox = boundingbox(axk)
     origin = coordstype(axk)(deg2rad.(axk.wcs.crval[1:NS])...)
-    @modify(bbox |> Properties()) do x
-        project(origin, x)
-    end
+    project(origin, bbox)
 end
 
 function boundingbox(::Type{CT}, axk::WCSAxkeys{NS,NW}) where {NS,NW,CT<:ProjectedCoords}
     bbox = boundingbox(parent_coords_type(CT), axk)
     origin = convert(parent_coords_type(CT), coordstype(axk)(deg2rad.(axk.wcs.crval[1:NS])...))
-    @modify(bbox |> Properties()) do x
-        project(origin, x)
-    end
+    project(origin, bbox)
 end
