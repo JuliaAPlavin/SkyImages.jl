@@ -4,3 +4,20 @@ authors = ["Alexander Plavin <alexander@plav.in>"]
 version = "0.1.0"
 
 [deps]
+AccessorsExtra = "33016aad-b69d-45be-9359-82a41f556fd4"
+AxisKeys = "94b1ba4f-4ee9-5380-92f1-94cde586c3c5"
+FITSIO = "525bcba6-941b-5504-bd06-fd0dc1a4d2eb"
+Healpix = "9f4e344d-96bc-545a-84a3-ae6b9e1b672b"
+RectiGrids = "8ac6971d-971d-971d-971d-971d5ab1a71a"
+SkyCoords = "fc659fc5-75a3-5475-a2ea-3da92c065361"
+WCS = "15f3aee2-9e10-537f-b834-a6fb8bdb944d"
+
+[compat]
+AccessorsExtra = "0.1.5"
+AxisKeys = "0.2.4"
+FITSIO = "0.16.12"
+Healpix = "4.0.1"
+RectiGrids = "0.1.9"
+SkyCoords = "1.0.1"
+WCS = "0.6.1"
+julia = "1.7"
