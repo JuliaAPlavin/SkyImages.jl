@@ -182,11 +182,18 @@ function _native_rect_image(A, axk::WCSAxkeys{NS,NW}) where {NS,NW}
     else
         (:x, :y)
     end
-    axkeys = NamedTuple{names}((
+    axkeys = @p NamedTuple{names}((
         getindex.(axworld[1], 1) |> Circular.unwrap,
         getindex.(axworld[2], 2),
-    ))
+    )) |> map(maybe_to_range)
     KeyedArray(data; axkeys...)
+end
+
+function maybe_to_range(x::AbstractVector{<:Number}; rtol=1e-3)
+    Δs = diff(x)
+    abs(1 - maximum(Δs) / minimum(Δs)) < rtol ?
+        range(start=first(x), stop=last(x), length=length(x)) :
+        x
 end
 
 
