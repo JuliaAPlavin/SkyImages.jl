@@ -159,11 +159,11 @@ end
         @warn "Cannot test healpix: image file not found"
         return
     end
-    simg = SkyImages.load(file)
+    simg = SkyImages.load(file; coordstype=GalCoords)
     @test size(simg) == (12582912,)
 
     coo = GalCoords(0.7892331153671623, 0.0130212012913129)
-    @test axiskeys(simg, :coords)[123] ≈ coo
+    @test axiskeys(simg, :coords)[123]::GalCoords{Float64} ≈ coo
     @test eltype(axiskeys(simg, :coords)) === GalCoords{Float64}
     @test simg[123] ≈ 4.056696891784668
     for coo in [coo, convert(ICRSCoords, coo)]

@@ -87,6 +87,7 @@ struct HealpixAxkeys{Order,TR,TT,CT} <: AbstractVector{CT}
     function HealpixAxkeys(hm::Healpix.HealpixMap{<:Any,Order}; coordstype) where {Order}
         tmp = new{Order,typeof(hm.resolution),Nothing,Nothing}(hm.resolution)
         tree = nothing # NN.KDTree(map(coords_to_3d, tmp))
+        coordstype = constructorof(coordstype)(1., 1.) |> typeof  # ensure concrete type: eg GalCoords -> GalCoords{Float64}
         return new{Order,typeof(hm.resolution),typeof(tree),coordstype}(hm.resolution, tree)
     end
 end
