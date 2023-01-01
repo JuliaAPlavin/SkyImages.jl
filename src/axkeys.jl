@@ -122,21 +122,30 @@ end
 
 
 
-
-function boundingbox(w::WCSAxkeys{NS,NW}) where {NS,NW}
-    endpoints = map(CartesianIndices(w.size)[[begin, end], [begin, end]]) do cix
-        pix = (Tuple(cix)..., ntuple(Returns(1), NW - NS)...)
-        world = WCS.pix_to_world(w.wcs, collect(Float64, pix))
-        wrad = NTuple{NS}(@view world[1:NS]) .|> deg2rad
-        coordstype(w)(wrad...)
-    end
-    endpoints = coordstype(w).(extrema(lon.(endpoints)), extrema(lat.(endpoints)))
-    CoordsRectangle(endpoints...)
+function boundingbox(h::HealpixAxkeys)
+    corners = (coordstype(h)(0, -π / 2), coordstype(h)(2π, π / 2))
+    CoordsRectangle(corners...)
 end
 
-function boundingbox(h::HealpixAxkeys)
-    endpoints = (coordstype(h)(0, -π / 2), coordstype(h)(2π, π / 2))
-    CoordsRectangle(endpoints...)
+
+function boundingbox(w::WCSAxkeys{NS,NW}) where {NS,NW}
+    edgepoints = @p begin
+        [
+            CartesianIndex.(1, 1:w.size[2]);
+            CartesianIndex.(w.size[1], 1:w.size[2]);
+            CartesianIndex.(1:w.size[1], 1);
+            CartesianIndex.(1:w.size[1], w.size[2]);
+        ]
+        map((Tuple(_)..., ntuple(Returns(1), NW - NS)...) .|> Float64)
+        reinterpret(reshape, Float64, __)
+        WCS.pix_to_world(w.wcs, collect(__))
+        reinterpret(reshape, NTuple{NS,Float64}, @view __[1:NS, :])
+        map(coordstype(w)(deg2rad.(_)...))
+    end
+    lons = endpoints(Circular.sample_interval(lon.(edgepoints), 0..2π))
+    lats = extrema(lat.(edgepoints))
+    corners = coordstype(w).(lons, lats)
+    rect = CoordsRectangle(corners...)
 end
 
 function boundingbox(::Type{CT}, axk) where {CT<:AbstractSkyCoords}

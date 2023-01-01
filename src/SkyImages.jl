@@ -7,6 +7,8 @@ using SkyCoords
 using SkyCoords: lat, lon
 using FITSIO: FITS, read_header, ImageHDU
 using Interpolations
+using DirectionalStatistics: Circular
+using IntervalSets
 import WCS
 import Healpix
 import RectiGrids
