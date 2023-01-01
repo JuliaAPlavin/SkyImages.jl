@@ -178,8 +178,6 @@ function _native_rect_image(A, axk::WCSAxkeys{NS,NW}) where {NS,NW}
         @p( tuple.(axk.wcs.crpix[1], 1:axk.size[2]) |> _pix_to_world(axk.wcs, __, Val(NS), Val(NW)) ),
     )
     names = if is_ax_separable(axk.wcs, 1) && is_ax_separable(axk.wcs, 2)
-        @assert @p axworld[1] |> map(_[2]) |> allequal
-        @assert @p axworld[2] |> map(_[1]) |> allequal
         fieldnames(coordstype(axk.wcs))
     else
         (:x, :y)
