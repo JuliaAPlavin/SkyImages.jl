@@ -13,7 +13,7 @@ function Base.in(x::AbstractSkyCoords, r::CoordsRectangle{T}) where {T}
     lon(r.a) <= lon(xc) <= lon(r.b)
 end
 
-project(center, rect) = @modify(x -> project(center, x), bbox |> Properties())
+project(center, rect) = @modify(x -> project(center, x), rect |> Properties())
 
 
 function RectiGrids.grid(r::CoordsRectangle{T}; lengths) where {T}
