@@ -15,6 +15,8 @@ end
 
 project(center, rect) = @modify(x -> project(center, x), rect |> Properties())
 
+Base.isapprox(a::T, b::T; kwargs...) where {T <: CoordsRectangle} = isapprox(a.a, b.a; kwargs...) && isapprox(a.b, b.b; kwargs...)
+
 
 function RectiGrids.grid(r::CoordsRectangle{T}; lengths) where {T}
     lons = range(lon(r.a), lon(r.b) + (is_lon_wrap(r) ? 2π : 0); length=first(lengths))

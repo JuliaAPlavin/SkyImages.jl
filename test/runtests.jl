@@ -31,10 +31,17 @@ end
     @test g[2, 2] == ICRSCoords(0.15, -0.1)
     @test named_axiskeys(g) == (ra=[0.1, 0.15, 0.2], dec=[-0.2, -0.1, 0])
 
+    g = grid(r; lengths=(3, 5))
+    @test size(g) == (3, 5)
+    @test g[2, 2] == ICRSCoords(0.15, -0.15)
+    @test named_axiskeys(g) == (ra = 0.1:0.05:0.2, dec = -0.2:0.05:0.0)
+
     c0 = ICRSCoords(0.11, -0.21)
     rp = project(c0, r)
     @test rp.a == project(c0, r.a)
     @test rp.b == project(c0, r.b)
+    gp = grid(rp; lengths=3)
+    @test all(collect(gp) .≈ collect(project.(Ref(c0), grid(r; lengths=3))))
 
     r = CoordsRectangle(GalCoords(0.1, -0.2), GalCoords(0.2, 0))
     g = grid(r; lengths=3)
@@ -80,6 +87,12 @@ end
         @test simg(Interp(coo; order=1)) ≈ -0.0002471391390044121
         @test simg(Interp.([coo]; order=1)) ≈ [-0.0002471391390044121]
     end
+
+    bbox = boundingbox(axiskeys(simg, :coords))
+    @test bbox ≈ CoordsRectangle(ICRSCoords(3.2759086803666007, 0.2160905200843189), ICRSCoords(3.276266122858064, 0.21643963719077577))
+    @test boundingbox(GalCoords, axiskeys(simg, :coords)).a ≈ GalCoords{Float64}(4.952041833684394, 1.2998966486360135)
+    @test convert(ICRSCoords, boundingbox(ProjectedCoords, axiskeys(simg, :coords)).a) ≈ bbox.a
+    @test convert(GalCoords, boundingbox(ProjectedCoords{GalCoords}, axiskeys(simg, :coords)).a) ≈ GalCoords{Float64}(4.952041833684394, 1.2998966486360135)
 end
 
 
