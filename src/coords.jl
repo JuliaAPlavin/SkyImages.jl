@@ -16,6 +16,7 @@ end
 
 function project(center::AbstractSkyCoords, c::AbstractSkyCoords)
     cc = convert(typeof(center), c)
-    xy = ((lon(cc) - lon(center)) * cos(lat(center)), lat(cc) - lat(center))
+    Δlon = Circular.center_angle(lon(cc) - lon(center))
+    xy = (Δlon * cos(lat(center)), lat(cc) - lat(center))
     ProjectedCoords(center, xy)
 end
