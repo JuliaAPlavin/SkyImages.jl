@@ -1,6 +1,7 @@
 [deps]
 AxisKeys = "94b1ba4f-4ee9-5380-92f1-94cde586c3c5"
 CompatHelperLocal = "5224ae11-6099-4aaa-941d-3aab004bd678"
+RectiGrids = "8ac6971d-971d-971d-971d-971d5ab1a71a"
 SkyCoords = "fc659fc5-75a3-5475-a2ea-3da92c065361"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 

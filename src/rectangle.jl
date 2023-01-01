@@ -17,21 +17,19 @@ project(center, rect) = @modify(x -> project(center, x), rect |> Properties())
 
 
 function RectiGrids.grid(r::CoordsRectangle{T}; lengths) where {T}
-    map(Base.splat(T),
-        RectiGrids.grid(
-            ra=is_lon_wrap(r) ? range(lon(r.a), lon(r.b) + 2π; length=first(lengths)) : range(lon(r.a), lon(r.b); length=first(lengths)),
-            dec=range(lat(r.a), lat(r.b); length=last(lengths))
-        )
-    )
+    lons = range(lon(r.a), lon(r.b) + (is_lon_wrap(r) ? 2π : 0); length=first(lengths))
+    lats = range(lat(r.a), lat(r.b); length=last(lengths))
+    map(Base.splat(T), RectiGrids.grid(; NamedTuple{fieldnames(T)}((lons, lats))...))
 end
 
 function RectiGrids.grid(r::CoordsRectangle{T}; lengths) where {T<:ProjectedCoords}
     @assert r.a.center == r.b.center
+    lons = range(r.a.xy[1], r.b.xy[1]; length=first(lengths))
+    lats = range(r.a.xy[2], r.b.xy[2]; length=last(lengths))
     map(xy -> ProjectedCoords(r.a.center, xy),
         RectiGrids.grid(
-            Tuple,
-            ra=range(r.a.xy[1], r.b.xy[1]; length=first(lengths)),
-            dec=range(r.a.xy[2], r.b.xy[2]; length=last(lengths))
+            Tuple;
+            NamedTuple{fieldnames(parent_coords_type(T))}((lons, lats))...
         )
     )
 end
