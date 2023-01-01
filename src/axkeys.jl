@@ -20,40 +20,40 @@ struct WCSAxkeys{NS,NW,CT} <: AbstractVector{CT}
 end
 
 WCSAxkeys(wcs, size) = WCSAxkeys{length(size),wcs.naxis,coordstype(wcs)}(wcs, size)
-coordstype(akx::WCSAxkeys{NS,NW,CT}) where {NS,NW,CT} = CT
+coordstype(axk::WCSAxkeys{NS,NW,CT}) where {NS,NW,CT} = CT
 
-Base.size(akx::WCSAxkeys) = (prod(akx.size),)
-function Base.getindex(akx::WCSAxkeys{NS,NW}, ix::Int) where {NS,NW}
-    pix = (Tuple(CartesianIndices(akx.size)[ix])..., ntuple(Returns(1), NW - NS)...)
-    world = WCS.pix_to_world(akx.wcs, collect(Float64, pix))
+Base.size(axk::WCSAxkeys) = (prod(axk.size),)
+function Base.getindex(axk::WCSAxkeys{NS,NW}, ix::Int) where {NS,NW}
+    pix = (Tuple(CartesianIndices(axk.size)[ix])..., ntuple(Returns(1), NW - NS)...)
+    world = WCS.pix_to_world(axk.wcs, collect(Float64, pix))
     wrad = NTuple{NS}(@view world[1:NS]) .|> deg2rad
-    coordstype(akx)(wrad...)
+    coordstype(axk)(wrad...)
 end
 
 # world_to_pix has a constant overhead of a few μs, this batch method calls it only once
-function AxisKeys.findindex(sels::AbstractArray{<:Near{<:AbstractSkyCoords}}, akx::WCSAxkeys{NS,NW}) where {NS,NW}
+function AxisKeys.findindex(sels::AbstractArray{<:Near{<:AbstractSkyCoords}}, axk::WCSAxkeys{NS,NW}) where {NS,NW}
     worlds = map(sels) do sel
-        valc = convert(coordstype(akx), sel.val)
+        valc = convert(coordstype(axk), sel.val)
         world = (SkyCoords.lon(valc) |> rad2deg, SkyCoords.lat(valc) |> rad2deg, ntuple(Returns(1.0), NW - 2)...)
     end
 
     # world_to_pix: pass flat vector of world coords (as 2d matrix), get flat vector of pix coords
-    pixs_vec_full = WCS.world_to_pix(akx.wcs, collect(reinterpret(reshape, Float64, vec(worlds))))
+    pixs_vec_full = WCS.world_to_pix(axk.wcs, collect(reinterpret(reshape, Float64, vec(worlds))))
     pixs_vec = reinterpret(reshape, NTuple{NS,Float64}, @view pixs_vec_full[1:NS, :])
 
     pixs = @set vec(sels) = pixs_vec
     map(pixs) do pix
-        pix_i = clamp.(round.(Int, pix), (:).(1, akx.size))
-        LinearIndices(akx.size)[CartesianIndex(pix_i)]
+        pix_i = clamp.(round.(Int, pix), (:).(1, axk.size))
+        LinearIndices(axk.size)[CartesianIndex(pix_i)]
     end
 end
 
 AxisKeys.getkey(A, sels::AbstractArray{<:Interp{<:AbstractSkyCoords}}) = _getkey(A, sels, only(axiskeys(A)))
 
 # world_to_pix has a constant overhead of a few μs, this batch method calls it only once
-function _getkey(A, sels::AbstractArray{<:Interp{<:AbstractSkyCoords}}, akx::WCSAxkeys{NS,NW}) where {NS,NW}
+function _getkey(A, sels::AbstractArray{<:Interp{<:AbstractSkyCoords}}, axk::WCSAxkeys{NS,NW}) where {NS,NW}
     worlds = map(sels) do sel
-        valc = convert(coordstype(akx), sel.val)
+        valc = convert(coordstype(axk), sel.val)
         valc = @modify(SkyCoords.lon(valc) |> If(∈(sel.avoid_lons))) do l
             argmin(e -> abs(e - l), endpoints(sel.avoid_lons))
         end
@@ -61,13 +61,13 @@ function _getkey(A, sels::AbstractArray{<:Interp{<:AbstractSkyCoords}}, akx::WCS
     end
 
     # world_to_pix: pass flat vector of world coords (as 2d matrix), get flat vector of pix coords
-    pixs_vec_full = WCS.world_to_pix(akx.wcs, collect(reinterpret(reshape, Float64, vec(worlds))))
+    pixs_vec_full = WCS.world_to_pix(axk.wcs, collect(reinterpret(reshape, Float64, vec(worlds))))
     pixs_vec = reinterpret(reshape, NTuple{NS,Float64}, @view pixs_vec_full[1:NS, :])
     pixs = @set vec(sels) = pixs_vec
 
     @assert allequal(s.order for s in sels)
     itp = @p A |>
-        reshape(__, akx.size) |>
+        reshape(__, axk.size) |>
         interpolate(__, itp_spec(sels[1].order)) |>
         extrapolate(__, NaN)
 
@@ -134,19 +134,19 @@ function boundingbox(::Type{CT}, ::HealpixAxkeys) where {CT}
     CoordsRectangle(corners...)
 end
 
-function boundingbox(::Type{CT}, akx::WCSAxkeys{NS,NW}) where {NS,NW,CT<:AbstractSkyCoords}
+function boundingbox(::Type{CT}, axk::WCSAxkeys{NS,NW}) where {NS,NW,CT<:AbstractSkyCoords}
     edgepoints = @p begin
         [
-            CartesianIndex.(1, 1:akx.size[2]);
-            CartesianIndex.(akx.size[1], 1:akx.size[2]);
-            CartesianIndex.(1:akx.size[1], 1);
-            CartesianIndex.(1:akx.size[1], akx.size[2]);
+            CartesianIndex.(1, 1:axk.size[2]);
+            CartesianIndex.(axk.size[1], 1:axk.size[2]);
+            CartesianIndex.(1:axk.size[1], 1);
+            CartesianIndex.(1:axk.size[1], axk.size[2]);
         ]
         map((Tuple(_)..., ntuple(Returns(1), NW - NS)...) .|> Float64)
         reinterpret(reshape, Float64, __)
-        WCS.pix_to_world(akx.wcs, collect(__))
+        WCS.pix_to_world(axk.wcs, collect(__))
         reinterpret(reshape, NTuple{NS,Float64}, @view __[1:NS, :])
-        map(coordstype(akx)(deg2rad.(_)...))
+        map(coordstype(axk)(deg2rad.(_)...))
         map(convert(CT, _))
     end
     lons = endpoints(Circular.sample_interval(lon.(edgepoints), 0..2π))
