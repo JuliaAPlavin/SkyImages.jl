@@ -1,3 +1,15 @@
+struct Interp{T, O}
+    val::T
+    order::O
+end
+
+itp_spec(o::Int) =
+    o == 0 ? BSpline(Constant()) :
+    o == 1 ? BSpline(Linear()) :
+    o == 2 ? BSpline(Quadratic(InPlace(OnCell()))) :
+    error("unsupported order = $o")
+
+
 struct WCSAxkeys{NS,NW,CT} <: AbstractVector{CT}
     wcs::WCS.WCSTransform
     size::NTuple{NS,Int}
@@ -38,6 +50,31 @@ function AxisKeys.findindex(sels::AbstractArray{<:Near{<:AbstractSkyCoords}}, w:
     map(pixs) do pix
         pix_i = clamp.(round.(Int, pix), (:).(1, w.size))
         LinearIndices(w.size)[CartesianIndex(pix_i)]
+    end
+end
+
+AxisKeys.getkey(A, sels::AbstractArray{<:Interp{<:AbstractSkyCoords}}) = _getkey(A, sels, only(axiskeys(A)))
+
+# world_to_pix has a constant overhead of a few μs, this batch method calls it only once
+function _getkey(A, sels::AbstractArray{<:Interp{<:AbstractSkyCoords}}, w::WCSAxkeys{NS,NW}) where {NS,NW}
+    worlds = map(sels) do sel
+        valc = convert(coordstype(w), sel.val)
+        world = (SkyCoords.lon(valc) |> rad2deg, SkyCoords.lat(valc) |> rad2deg, ntuple(Returns(1.0), NW - 2)...)
+    end
+
+    # world_to_pix: pass flat vector of world coords (as 2d matrix), get flat vector of pix coords
+    pixs_vec_full = WCS.world_to_pix(w.wcs, collect(reinterpret(reshape, Float64, vec(worlds))))
+    pixs_vec = reinterpret(reshape, NTuple{NS,Float64}, @view pixs_vec_full[1:NS, :])
+    pixs = @set vec(sels) = pixs_vec
+
+    @assert allequal(s.order for s in sels)
+    itp = @p A |>
+        reshape(__, w.size) |>
+        interpolate(__, itp_spec(sels[1].order)) |>
+        extrapolate(__, NaN)
+
+    map(pixs) do pix
+        itp(pix...)
     end
 end
 

@@ -1,10 +1,12 @@
 module SkyImages
 
 using AccessorsExtra
+using DataPipes
 using AxisKeys
 using SkyCoords
 using SkyCoords: lat, lon
 using FITSIO: FITS, read_header, ImageHDU
+using Interpolations
 import WCS
 import Healpix
 import RectiGrids

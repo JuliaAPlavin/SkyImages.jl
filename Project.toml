@@ -1,13 +1,15 @@
 name = "SkyImages"
 uuid = "2d546a2e-713c-402d-bee5-ba90cc43b84b"
 authors = ["Alexander Plavin <alexander@plav.in>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 AccessorsExtra = "33016aad-b69d-45be-9359-82a41f556fd4"
 AxisKeys = "94b1ba4f-4ee9-5380-92f1-94cde586c3c5"
+DataPipes = "02685ad9-2d12-40c3-9f73-c6aeda6a7ff5"
 FITSIO = "525bcba6-941b-5504-bd06-fd0dc1a4d2eb"
 Healpix = "9f4e344d-96bc-545a-84a3-ae6b9e1b672b"
+Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 RectiGrids = "8ac6971d-971d-971d-971d-971d5ab1a71a"
 SkyCoords = "fc659fc5-75a3-5475-a2ea-3da92c065361"
 WCS = "15f3aee2-9e10-537f-b834-a6fb8bdb944d"
