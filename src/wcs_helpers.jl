@@ -14,7 +14,7 @@ end
 
 
 is_image_hdu(hdu) = hdu isa ImageHDU && length(hdu) > 1
-is_healpix_hdu(hdu) = !(hdu isa ImageHDU) && getkey(read_header(hdu), "PIXTYPE", nothing) == "HEALPIX"
+is_healpix_hdu(hdu) = !(hdu isa ImageHDU) && get(read_header(hdu), "PIXTYPE", nothing) == "HEALPIX"
 
 function is_ax_separable(wcs::WCS.WCSTransform, i::Int)
     wa = WCS.pix_to_world(wcs, wcs.crpix)
