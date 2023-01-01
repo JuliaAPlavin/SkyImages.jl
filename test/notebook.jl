@@ -29,21 +29,27 @@ using SkyCoords
 using PyPlotUtils; pyplot_style!()
 
 # ╔═╡ c1f7876c-9262-445f-b199-6d7f46434294
+# ╠═╡ show_logs = false
 using DataPipes
 
 # ╔═╡ 36ccd512-b91d-47a7-a86d-a0baeb7faf32
+# ╠═╡ show_logs = false
 using DisplayAs: Text as AsText, DisplayAs
 
 # ╔═╡ 9d343fd3-0258-41e4-9e06-938282491ecf
+# ╠═╡ show_logs = false
 using StatsBase
 
 # ╔═╡ 8dc78491-a634-4290-9ecc-c13e9be46c2e
+# ╠═╡ show_logs = false
 using SkipNan
 
 # ╔═╡ f7bb31e5-9a69-4a9d-bd62-02c3b7d0d332
+# ╠═╡ show_logs = false
 using AccessorsExtra
 
 # ╔═╡ 1c17fd5e-f047-4bd4-8b00-56fa077c7bb0
+# ╠═╡ show_logs = false
 using PyFormattedStrings
 
 # ╔═╡ 5ebbcfb6-f534-490f-947f-b7c039156908
@@ -89,6 +95,10 @@ md"""
 md"""
 Let's load one of the images. This is the map of the whole sky in gamma rays, as see by Fermi LAT.
 """
+
+# ╔═╡ 3d581238-56b7-44b9-a9c3-9af9530ae136
+# uncomment to download:
+# download("https://fermi.gsfc.nasa.gov/ssc/data/access/lat/12yr_catalog/intens_scaled_ait_144m_gt1000_psf3_gal_0p1.fits.gz", "data/intens_scaled_ait_144m_gt1000_psf3_gal_0p1.fits")
 
 # ╔═╡ 7de9fc6e-f652-48bc-babe-af0e56a8c427
 simg = SkyImages.load("data/intens_scaled_ait_144m_gt1000_psf3_gal_0p1.fits");
@@ -216,6 +226,10 @@ It was easy for the whole sky, but what to do when the image only covers a small
 
 First, let's load such an image:
 """
+
+# ╔═╡ 6eaf40d7-5513-4a03-a77d-a1f38aa47af2
+# uncomment to download:
+# download("http://www.astro.uvic.ca/~wthompson/astroimages/fits/656nmos.fits", "data/656nmos.fits")
 
 # ╔═╡ 18d26c89-e953-46bf-9a96-512d55c75a7d
 small_img = SkyImages.load("data/656nmos.fits");
@@ -351,6 +365,10 @@ Healpix is also a common format for astronomical images covering the whole sky. 
 `SkyImages.jl` transparently supports them as well, with the same interface as FITS + WCS images shown above:
 """
 
+# ╔═╡ 123564f2-8a13-47cb-9f9c-5af7fd19b6b8
+# uncomment to download:
+# download("https://faun.rc.fas.harvard.edu/dfink/skymaps/halpha/data/v1_1/healpix/Halpha_fwhm06_1024.fits", "data/Halpha_fwhm06_1024.fits")
+
 # ╔═╡ 999c382b-5de9-4324-bea4-f6ddb1f37735
 let 
 	plt.figure(figsize=(10, 6))
@@ -381,6 +399,14 @@ Here, we show a neat example of visualizing multiple images of the same astronom
 Images span many orders of magnitude in extent and resolution, from kiloparsec to astronomical units. Together they provide a beautiful view of the M87 jet and the immediate surroundings of the central black hole.
 """
 
+# ╔═╡ 31c8cf4b-cc86-4323-8587-16082443d3ae
+# uncomment to download:
+# download("https://github.com/yuanjea/eht-demo/blob/master/eht.fits", "data/m87_eht.fits")
+# download("https://www.cv.nrao.edu/2cmVLBA/data/1228+126/2021_05_01/1228+126.u.2021_05_01.icn.fits.gz", "data/1228+126.u.2021_05_01.icn.fits.gz") # and unpack
+# download("https://osf.io/download/te6jb/?view_only=9e8124dcdc7643cda6d980c142de23a3", "data/1-VLASS__2.2.ql.T14t19.J123049.42+122328.0.fits")
+# download("https://osf.io/download/3jdpz/?view_only=9e8124dcdc7643cda6d980c142de23a3", "data/NVSS_1995-02-27_J123049.42+122328.0.fits")
+# download("https://osf.io/download/v9gzy/?view_only=9e8124dcdc7643cda6d980c142de23a3", "data/hst_05122_01_wfpc2_f547m_wf_sci.fits")
+
 # ╔═╡ 594c91e1-565a-49ad-9b77-20aabe7e71f4
 imspecs = @p [
 	(file="NVSS_1995-02-27_J123049.42+122328.0.fits", size=300u"as", dynrange=10, label="VLA NVSS"),
@@ -388,9 +414,9 @@ imspecs = @p [
 	(file="1228+126.u.2021_05_01.icn.fits", size=30u"mas", dynrange=300, label="VLBI MOJAVE"),
 	(file="hst_05122_01_wfpc2_f547m_wf_sci.fits", size=25u"as", dynrange=100, label="HST"),
 	(file="hst_05122_01_wfpc2_f547m_wf_sci.fits", size=2u"as", dynrange=10, label="HST zoom"),
-	(file="eht.fits", size=1u"mas", dynrange=1, label="EHT"),
+	(file="m87_eht.fits", size=1u"mas", dynrange=1, label="EHT"),
 	(file="intens_scaled_ait_144m_gt1000_psf3_gal_0p1.fits", size=2u"°", dynrange=1, label="Fermi"),
-] |> @set(__ |> Elements() |> _.file |> dirname = "data/m87")
+] |> @set(__ |> Elements() |> _.file |> dirname = "data")
 
 # ╔═╡ 09a7db9c-0afb-41a1-a66b-924469ea003c
 m87_coord = ICRSCoords(deg2rad.((187.70593075416664, 12.391123236111111))...)
@@ -461,7 +487,7 @@ let
 		end
 	end
 	for (a, b) in zip(ax[1:end-1], ax[2:end])
-		add_zoom_patch(fig, a, b, :horizontal; color=:"0.5")
+		add_zoom_patch(a, b, :horizontal; color=:"0.5")
 	end
 	plt.tight_layout()
 	plt.gcf()
@@ -514,6 +540,22 @@ Of course, this works with compact images as well:
 begin
 	plt.figure()
 	@p SkyImages.native_rect_image(small_img) |>
+		@modify(xs -> xs .* rad2deg(1), axiskeys(__) |> Elements()) |>
+		pcolormesh_ax(__; norm=matplotlib.colors.Normalize(vmin=0, vmax=quantile(skipnan(__), 1-3e-4)))
+	plt.gca().set_aspect(:equal)
+	plt.gcf()
+end
+
+# ╔═╡ 6bcc1479-30f6-44e1-9745-04217b9961d9
+md"""
+And with projected coordinates:
+"""
+
+# ╔═╡ 2086df08-3915-46d7-aafa-2700145265c4
+begin
+	plt.figure()
+	@p SkyImages.native_rect_image(ProjectedCoords, small_img) |>
+		@modify(xs -> xs .* rad2deg(1), axiskeys(__) |> Elements()) |>
 		pcolormesh_ax(__; norm=matplotlib.colors.Normalize(vmin=0, vmax=quantile(skipnan(__), 1-3e-4)))
 	plt.gca().set_aspect(:equal)
 	plt.gcf()
@@ -535,46 +577,13 @@ md"""
 # ╔═╡ 2e9afe63-0048-4e91-b9b3-778957d3df00
 
 
-# ╔═╡ 6be80fa0-ef2d-452b-a278-8f04abbc4f9c
+# ╔═╡ 2f1996bb-514b-4666-ae47-c84fdca266b6
 
 
-# ╔═╡ 31f5c00d-2be8-4843-98e0-1bab85ac2f57
-md"""
-- extract original rect image in projected coords
-- projected with specified axis direction (e.g. to make jet horizontal) ???
-"""
-
-# ╔═╡ 8dd355b7-114a-4627-81a0-fc33d79e2a6d
+# ╔═╡ a0a45805-ec74-4df4-8c6f-d0a7d1534103
 
 
-# ╔═╡ 9f308f8a-3033-429a-bde6-36cb9f1ab1b0
-
-
-# ╔═╡ 02078d2d-c545-4b3f-8b4c-9dff5788aaae
-
-
-# ╔═╡ 5eb368bf-6fc3-484e-9b40-403773f6f4ab
-begin
-	# https://github.com/JuliaAstro/WCS.jl/pull/46
-	
-	import ConstructionBase
-	
-	function ConstructionBase.setproperties(obj::SkyImages.WCS.WCSTransform, patch::NamedTuple)
-		res = deepcopy(obj)
-		for (k, v) in pairs(patch)
-			setproperty!(res, k, v)
-		end
-		return res
-	end
-end
-
-# ╔═╡ e18f9920-6879-49a0-abe1-94a105734dd5
-
-
-# ╔═╡ 4ae186bb-e7c7-4aab-9c70-04a149e46e7f
-
-
-# ╔═╡ c758da66-0444-4e4d-aac8-e62dfa93dfbf
+# ╔═╡ 8d66003b-3123-42a1-8f3e-4ca58eab0c32
 
 
 # ╔═╡ 1265dd87-7395-4637-8b07-8dd5df20e43b
@@ -619,7 +628,6 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 AccessorsExtra = "33016aad-b69d-45be-9359-82a41f556fd4"
 AstroImages = "fe3fc30c-9b16-11e9-1c73-17dabf39f4ad"
 AxisKeys = "94b1ba4f-4ee9-5380-92f1-94cde586c3c5"
-ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
 DataPipes = "02685ad9-2d12-40c3-9f73-c6aeda6a7ff5"
 DisplayAs = "0b91fe84-8a4c-11e9-3e1d-67c38462b6d6"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
@@ -640,7 +648,6 @@ UnitfulAngles = "6fb2a4bd-7999-5318-a3b2-8ad61056cd98"
 AccessorsExtra = "~0.1.9"
 AstroImages = "~0.3.1"
 AxisKeys = "~0.2.7"
-ConstructionBase = "~1.4.1"
 DataPipes = "~0.2.17"
 DisplayAs = "~0.1.6"
 Plots = "~1.31.7"
@@ -663,7 +670,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.0"
 manifest_format = "2.0"
-project_hash = "e2dbca287ed3bfdc3cebb9c51a9ae87193167b5d"
+project_hash = "805b274e7f4e397bdcf18adf6c5d06a93f01029c"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -1543,9 +1550,9 @@ version = "0.5.11"
 
 [[deps.Parsers]]
 deps = ["Dates"]
-git-tree-sha1 = "0044b23da09b5608b4ecacb4e5e6c6332f833a7e"
+git-tree-sha1 = "3d5bf43e3e8b412656404ed9466f1dcbf7c50269"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "2.3.2"
+version = "2.4.0"
 
 [[deps.Pixman_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1754,7 +1761,7 @@ version = "1.0.1"
 deps = ["AccessorsExtra", "AxisKeys", "ConstructionBase", "DataPipes", "DirectionalStatistics", "FITSIO", "Healpix", "Interpolations", "IntervalSets", "RectiGrids", "SkyCoords", "WCS"]
 path = "../../home/aplavin/.julia/dev/SkyImages"
 uuid = "2d546a2e-713c-402d-bee5-ba90cc43b84b"
-version = "0.1.3"
+version = "0.1.4"
 
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
@@ -2180,6 +2187,7 @@ version = "1.4.1+0"
 # ╟─aa6da229-640c-4eae-a0fe-9bd2742fa849
 # ╟─b02f575f-bbd5-42c0-aab3-37415b66bd76
 # ╟─72a56fff-84ab-4fdb-882f-e0ee6efada45
+# ╠═3d581238-56b7-44b9-a9c3-9af9530ae136
 # ╟─41f3ff07-8ebe-4224-ad1b-9342ee4e7e07
 # ╠═7de9fc6e-f652-48bc-babe-af0e56a8c427
 # ╟─b2649127-99b3-4ee4-aa54-d11f46f2c04e
@@ -2208,6 +2216,7 @@ version = "1.4.1+0"
 # ╟─d177d489-072c-4dcd-a72f-0eeab7fedc2a
 # ╟─3b5fbd3c-cfff-4f21-9736-589e9c01e656
 # ╟─a5ed3228-f068-4784-9d7a-61530cbd40e6
+# ╠═6eaf40d7-5513-4a03-a77d-a1f38aa47af2
 # ╠═18d26c89-e953-46bf-9a96-512d55c75a7d
 # ╟─0c7b5add-fc89-4633-8c1b-9f472cb5707e
 # ╠═8f6a723c-bc5c-46e9-aaeb-af13a25ba4d8
@@ -2231,11 +2240,13 @@ version = "1.4.1+0"
 # ╠═e98ccebd-b7fd-4de3-8e16-4056512ed1a9
 # ╟─a97f89d2-b8fc-4b7b-b0ab-c4170017db27
 # ╟─42be67e7-bc56-49d4-a391-fededc1bd1b6
+# ╠═123564f2-8a13-47cb-9f9c-5af7fd19b6b8
 # ╠═999c382b-5de9-4324-bea4-f6ddb1f37735
 # ╟─c03ddad8-d708-4d4f-8e08-ae7ce5a05bb9
 # ╟─3d868917-38a8-41cf-acb5-d5a1a2615448
 # ╟─487f817d-d67f-4152-bae6-7ec593f253fe
 # ╠═37bd1aba-72ba-4b42-b8aa-789318691328
+# ╠═31c8cf4b-cc86-4323-8587-16082443d3ae
 # ╠═594c91e1-565a-49ad-9b77-20aabe7e71f4
 # ╠═09a7db9c-0afb-41a1-a66b-924469ea003c
 # ╠═95b0e957-1deb-4176-b819-9d716a09e5b1
@@ -2249,6 +2260,8 @@ version = "1.4.1+0"
 # ╠═167eec1b-7f36-4ff0-9333-b086a09fb6b2
 # ╟─ec6d6033-0fd9-4b03-a82d-16f4258dd60b
 # ╠═8dcbf3c5-0de4-4235-8330-45886c562535
+# ╟─6bcc1479-30f6-44e1-9745-04217b9961d9
+# ╠═2086df08-3915-46d7-aafa-2700145265c4
 # ╟─cc5439ff-17b7-4a8f-98fb-3bf82bc1544f
 # ╟─c0ef8625-3d6a-457b-a07c-cc03ecb31a5d
 # ╠═0962b3ae-4183-4e5c-8e5d-1c0817e548b7
@@ -2256,15 +2269,9 @@ version = "1.4.1+0"
 # ╠═e28ee6fb-dbab-4884-867f-c60e9bf55e65
 # ╠═ed5d3e9d-5b11-4c9e-b701-c02ece625d01
 # ╠═2e9afe63-0048-4e91-b9b3-778957d3df00
-# ╠═6be80fa0-ef2d-452b-a278-8f04abbc4f9c
-# ╠═31f5c00d-2be8-4843-98e0-1bab85ac2f57
-# ╠═8dd355b7-114a-4627-81a0-fc33d79e2a6d
-# ╠═9f308f8a-3033-429a-bde6-36cb9f1ab1b0
-# ╠═02078d2d-c545-4b3f-8b4c-9dff5788aaae
-# ╠═5eb368bf-6fc3-484e-9b40-403773f6f4ab
-# ╠═e18f9920-6879-49a0-abe1-94a105734dd5
-# ╠═4ae186bb-e7c7-4aab-9c70-04a149e46e7f
-# ╠═c758da66-0444-4e4d-aac8-e62dfa93dfbf
+# ╠═2f1996bb-514b-4666-ae47-c84fdca266b6
+# ╠═a0a45805-ec74-4df4-8c6f-d0a7d1534103
+# ╠═8d66003b-3123-42a1-8f3e-4ca58eab0c32
 # ╠═8e437f0f-20fd-40b7-bfac-e660d8dfa7b8
 # ╠═1265dd87-7395-4637-8b07-8dd5df20e43b
 # ╠═e3c72be9-8488-4c01-843c-16553057a0b5
