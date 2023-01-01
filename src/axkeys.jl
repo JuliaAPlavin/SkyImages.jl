@@ -124,8 +124,6 @@ end
 
 
 AxisKeys.findindex(sel::Near{<:AbstractSkyCoords}, axk::Union{WCSAxkeys, HealpixAxkeys}) = AxisKeys.findindex([sel], axk) |> only
-AxisKeys.findindex(sel::Interp{<:AbstractSkyCoords}, axk::Union{WCSAxkeys, HealpixAxkeys}) = AxisKeys.findindex([sel], axk) |> only
-
 
 
 boundingbox(axk) = boundingbox(coordstype(axk), axk)
