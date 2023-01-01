@@ -1,18 +1,36 @@
-struct ProjectedCoords{TC<:AbstractSkyCoords,T} <: AbstractSkyCoords
+abstract type AbstractProjectedCoords <: AbstractSkyCoords end
+
+struct ProjectedCoords{TC<:AbstractSkyCoords,T} <: AbstractProjectedCoords
     center::TC
     xy::NTuple{2,T}
 end
 
-Base.convert(::Type{T}, c::T) where {T<:ProjectedCoords} = c
+struct ProjectedCoordsS{C,T} <: AbstractProjectedCoords
+    xy::NTuple{2,T}
+end
+
+ProjectedCoordsS{C}(xy) where {C} = ProjectedCoordsS{C, eltype(xy)}(xy)
 
 parent_coords_type(::Type{<:ProjectedCoords{TC}}) where {TC} = TC
+parent_coords_type(::Type{<:ProjectedCoordsS{TC}}) where {TC <: AbstractSkyCoords} = TC
+parent_coords_type(::Type{<:ProjectedCoordsS{center}}) where {center} = typeof(center)
+origin(c::ProjectedCoords) = c.center
+origin(::ProjectedCoordsS{center}) where {center} = center
 
-function Base.convert(::Type{TCto}, c::ProjectedCoords) where {TCto<:AbstractSkyCoords}
-    res = c.center
+
+Base.convert(::Type{T}, c::T) where {T<:AbstractProjectedCoords} = c
+Base.convert(::Type{ProjectedCoords}, c::ProjectedCoordsS) = ProjectedCoords(origin(c), c.xy)
+Base.convert(::Type{ProjectedCoordsS}, c::ProjectedCoords) = ProjectedCoordsS{origin(c)}(c.xy)
+
+function Base.convert(::Type{TCto}, c::AbstractProjectedCoords) where {TCto<:AbstractSkyCoords}
+    res = origin(c)
     res = @set lat(res) += c.xy[2]
-    res = @set lon(res) += c.xy[1] / cos(lat(c.center))
+    res = @set lon(res) += c.xy[1] / cos(lat(origin(c)))
     convert(TCto, res)
 end
+
+
+project(::Val{center}, c::AbstractSkyCoords) where {center} = ProjectedCoordsS{center}(project(center, c).xy)
 
 function project(center::AbstractSkyCoords, c::AbstractSkyCoords)
     cc = convert(typeof(center), c)
@@ -21,5 +39,5 @@ function project(center::AbstractSkyCoords, c::AbstractSkyCoords)
     ProjectedCoords(center, xy)
 end
 
-SkyCoords.lon(c::ProjectedCoords) = lon(c.center) + c.xy[1] / cos(lat(c.center))
-SkyCoords.lat(c::ProjectedCoords) = lat(c.center) + c.xy[2]
+SkyCoords.lon(c::AbstractProjectedCoords) = lon(origin(c)) + c.xy[1] / cos(lat(origin(c)))
+SkyCoords.lat(c::AbstractProjectedCoords) = lat(origin(c)) + c.xy[2]

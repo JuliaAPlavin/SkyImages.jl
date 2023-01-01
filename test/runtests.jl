@@ -1,5 +1,5 @@
 using SkyImages
-using SkyImages: CoordsRectangle, project, Interp
+using SkyImages: CoordsRectangle, project, Interp, origin
 using RectiGrids
 using SkyCoords
 using AxisKeys
@@ -10,14 +10,23 @@ Base.isapprox(a::T, b::T; kwargs...) where {T <: AbstractSkyCoords} = isapprox(S
 @testset "proj coords" begin
     c0 = ICRSCoords(0.1, -0.2)
     c1 = ICRSCoords(0.1 + 1e-5, -0.2 + 3e-5)
-    cp = project(c0, c1)
-    @test cp.center == c0
+    cp = project(c0, c1)::ProjectedCoords
+    @test origin(cp) == c0
     @test cp.xy[1] ≈ 0.98 * 1e-5  rtol=1e-4
     @test cp.xy[2] ≈ 3e-5
     @test convert(ICRSCoords, cp) ≈ c1
     @test convert(GalCoords, cp) ≈ convert(GalCoords, c1)
     @test cp == cp
     @test cp ≈ cp
+
+    cps = project(Val(c0), c1)::ProjectedCoordsS
+    @test origin(cps) == c0
+    @test cps.xy[1] ≈ 0.98 * 1e-5  rtol=1e-4
+    @test cps.xy[2] ≈ 3e-5
+    @test convert(ICRSCoords, cps) ≈ c1
+    @test convert(GalCoords, cps) ≈ convert(GalCoords, c1)
+    @test cps == cps
+    @test cps ≈ cps
 end
 
 @testset "rectangle" begin
