@@ -1,13 +1,14 @@
-using SkyImages
-using SkyImages: CoordsRectangle, project, Interp, origin, native_rect_image
-using RectiGrids
-using SkyCoords
-using AxisKeys
-using Test
+using TestItems
+using TestItemRunner
+@run_package_tests
 
-Base.isapprox(a::T, b::T; kwargs...) where {T <: AbstractSkyCoords} = isapprox(SkyCoords.lon(a), SkyCoords.lon(b); kwargs...) && isapprox(SkyCoords.lat(a), SkyCoords.lat(b); kwargs...)
 
-@testset "proj coords" begin
+@testitem "proj coords" begin
+    using SkyImages: project, origin
+    using SkyCoords
+
+    Base.isapprox(a::T, b::T; kwargs...) where {T <: AbstractSkyCoords} = isapprox(SkyCoords.lon(a), SkyCoords.lon(b); kwargs...) && isapprox(SkyCoords.lat(a), SkyCoords.lat(b); kwargs...)
+
     c0 = ICRSCoords(0.1, -0.2)
     c1 = ICRSCoords(0.1 + 1e-5, -0.2 + 3e-5)
     cp = project(c0, c1)::ProjectedCoords
@@ -29,7 +30,11 @@ Base.isapprox(a::T, b::T; kwargs...) where {T <: AbstractSkyCoords} = isapprox(S
     @test cps ≈ cps
 end
 
-@testset "rectangle" begin
+@testitem "rectangle" begin
+    using SkyImages: CoordsRectangle, project
+    using SkyCoords
+    using RectiGrids
+
     r = CoordsRectangle(ICRSCoords(0.1, -0.2), ICRSCoords(0.2, 0))
     @test ICRSCoords(0.1, -0.2) ∈ r
     @test ICRSCoords(0.15, -0.15) ∈ r
@@ -76,10 +81,14 @@ end
     @test_throws MethodError CoordsRectangle(ICRSCoords(0.1, -0.2), GalCoords(0.2, 0))
 end
 
-keyarr_equal(a, b) = a == b && named_axiskeys(a) == named_axiskeys(b)
+@testitem "fits wcs image" begin
+    using SkyCoords
+    using SkyImages: CoordsRectangle, origin, Interp, native_rect_image
+    using AxisKeys
 
-@testset "fits wcs image" begin
-    simg = SkyImages.load("./data/vlass.fits")
+    keyarr_equal(a, b) = a == b && named_axiskeys(a) == named_axiskeys(b)
+
+    simg = SkyImages.load(joinpath(@__DIR__, "data/vlass.fits"))
     @test size(simg) == (5329,)
 
     coo = ICRSCoords(3.2760228432272003, 0.21609540562015125)
@@ -132,13 +141,19 @@ keyarr_equal(a, b) = a == b && named_axiskeys(a) == named_axiskeys(b)
     @test rimg[12, 34] ≈ 0.05163522f0
 end
 
+@testitem "healpix image" begin
+    using SkyCoords
+    using SkyImages: CoordsRectangle, origin, Interp, native_rect_image
+    using AxisKeys
 
-@testset "healpix image" begin
-    if !isfile("./data/Halpha_fwhm06_1024.fits")
+    keyarr_equal(a, b) = a == b && named_axiskeys(a) == named_axiskeys(b)
+
+    file = joinpath(@__DIR__, "data/Halpha_fwhm06_1024.fits")
+    if !isfile(file)
         @warn "Cannot test healpix: image file not found"
         return
     end
-    simg = SkyImages.load("./data/Halpha_fwhm06_1024.fits")
+    simg = SkyImages.load(file)
     @test size(simg) == (12582912,)
 
     coo = GalCoords(0.7892331153671623, 0.0130212012913129)
@@ -163,5 +178,7 @@ end
 end
 
 
-import CompatHelperLocal as CHL
-CHL.@check()
+@testitem "" begin
+    import CompatHelperLocal as CHL
+    CHL.@check()
+end
