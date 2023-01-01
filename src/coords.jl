@@ -12,6 +12,8 @@ end
 ProjectedCoordsS{C}(xy) where {C} = ProjectedCoordsS{C, eltype(xy)}(xy)
 ConstructionBase.constructorof(::Type{<:ProjectedCoordsS{C}}) where {C} = ProjectedCoordsS{C} ∘ tuple
 
+parent_coords_type(::Type{ProjectedCoords}) = Any
+parent_coords_type(::Type{ProjectedCoordsS}) = Any
 parent_coords_type(::Type{<:ProjectedCoords{TC}}) where {TC} = TC
 parent_coords_type(::Type{<:ProjectedCoordsS{TC}}) where {TC <: AbstractSkyCoords} = TC
 parent_coords_type(::Type{<:ProjectedCoordsS{center}}) where {center} = typeof(center)

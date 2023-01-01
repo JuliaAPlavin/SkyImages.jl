@@ -1,5 +1,5 @@
 using SkyImages
-using SkyImages: CoordsRectangle, project, Interp, origin
+using SkyImages: CoordsRectangle, project, Interp, origin, native_rect_image
 using RectiGrids
 using SkyCoords
 using AxisKeys
@@ -121,6 +121,15 @@ keyarr_equal(a, b) = a == b && named_axiskeys(a) == named_axiskeys(b)
     @test convert(GalCoords, boundingbox(ProjectedCoords{GalCoords}, axiskeys(simg, :coords)).a) ≈ GalCoords(4.952041833684394, 1.2998966486360135)
     @test convert(ICRSCoords, boundingbox(ProjectedCoordsS, axiskeys(simg, :coords)).a) ≈ bbox.a
     @test convert(GalCoords, boundingbox(ProjectedCoordsS{GalCoords}, axiskeys(simg, :coords)).a) ≈ GalCoords(4.952041833684394, 1.2998966486360135)
+
+    rimg = native_rect_image(simg)
+    @test named_axiskeys(rimg).ra ≈ 3.276266446383939:-4.965847587640799e-6:3.2759089053576287
+    @test named_axiskeys(rimg).dec ≈ 0.2160905962340298:4.8481455909465185e-6:0.21643966271657794
+    @test rimg[12, 34] ≈ 0.05163522f0
+    rimg = native_rect_image(ProjectedCoords, simg)
+    @test named_axiskeys(rimg).ra ≈ 0.0008491598573101555:-4.965847587640799e-6:0.000491618831000018
+    @test named_axiskeys(rimg).dec ≈ -0.0020750040441857576:4.8481455909465185e-6:-0.0017259375616376083
+    @test rimg[12, 34] ≈ 0.05163522f0
 end
 
 

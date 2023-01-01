@@ -169,24 +169,36 @@ end
 
 
 
-native_rect_image(A::KeyedArray) = _native_rect_image(A, only(axiskeys(A)))
+native_rect_image(A::KeyedArray) = _native_rect_image(coordstype(axiskeys(A, :coords).wcs), A, axiskeys(A, :coords))
+native_rect_image(T::Type, A::KeyedArray) = _native_rect_image(T, A, axiskeys(A, :coords))
 
-function _native_rect_image(A, axk::WCSAxkeys{NS,NW}) where {NS,NW}
+function _native_rect_image(::Type{T}, A, axk::WCSAxkeys{NS,NW}) where {T,NS,NW}
+    let base_coord_T = T <: AbstractProjectedCoords ? parent_coords_type(T) : T
+        coordstype(axk.wcs) <: base_coord_T || error("coords type $T not supported for WCS coords type $(coordstype(axk.wcs))")
+    end
+
     data = reshape(A, axk.size)
+
     axworld = (
         @p( tuple.(1:axk.size[1], axk.wcs.crpix[2]) |> _pix_to_world(axk.wcs, __, Val(NS), Val(NW)) ),
         @p( tuple.(axk.wcs.crpix[1], 1:axk.size[2]) |> _pix_to_world(axk.wcs, __, Val(NS), Val(NW)) ),
     )
+    axkeys = @p (
+        getindex.(axworld[1], 1) |> Circular.unwrap,
+        getindex.(axworld[2], 2),
+    ) |> map(maybe_to_range)
+    if T <: AbstractProjectedCoords
+        origin = deg2rad.(axk.wcs.crval[1:NS])
+        axkeys = map(.-, axkeys, origin)
+    end
+
     names = if is_ax_separable(axk.wcs, 1) && is_ax_separable(axk.wcs, 2)
         fieldnames(coordstype(axk.wcs))
     else
         (:x, :y)
     end
-    axkeys = @p NamedTuple{names}((
-        getindex.(axworld[1], 1) |> Circular.unwrap,
-        getindex.(axworld[2], 2),
-    )) |> map(maybe_to_range)
-    KeyedArray(data; axkeys...)
+
+    KeyedArray(data; NamedTuple{names}(axkeys)...)
 end
 
 function maybe_to_range(x::AbstractVector{<:Number}; rtol=1e-3)
