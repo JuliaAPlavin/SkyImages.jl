@@ -61,6 +61,8 @@ end
     @test_throws MethodError CoordsRectangle(ICRSCoords(0.1, -0.2), GalCoords(0.2, 0))
 end
 
+keyarr_equal(a, b) = a == b && named_axiskeys(a) == named_axiskeys(b)
+
 @testset "fits wcs image" begin
     simg = SkyImages.load("./data/vlass.fits")
     @test size(simg) == (5329,)
@@ -70,22 +72,22 @@ end
     @test eltype(axiskeys(simg, :coords)) === ICRSCoords{Float64}
     @test simg[123] ≈ -0.001051501
     for coo in [coo, convert(GalCoords, coo)]
-        @test simg(Near(coo)) ≈ simg[123]
-        @test simg(Near.([coo])) ≈ [simg[123]]
-        @test simg(Interp(coo; order=0)) ≈ simg[123]
-        @test simg(Interp.([coo]; order=0)) ≈ [simg[123]]
+        @test simg(Near(coo)) == simg[123]
+        @test simg(Near.([coo])) == [simg[123]]
+        @test simg(Near.([coo;;])) == [simg[123];;]
+        @test keyarr_equal(simg(Near.(KeyedArray([coo;;], x=[:a], y=[5]))), KeyedArray([simg[123];;], x=[:a], y=[5]))
+        @test simg(Interp(coo; order=0)) == simg[123]
+        @test simg(Interp.([coo]; order=0)) == [simg[123]]
+        @test simg(Interp.([coo;;]; order=0)) == [simg[123];;]
+        @test keyarr_equal(simg(Interp.(KeyedArray([coo;;], x=[:a], y=[5]); order=0)), KeyedArray([simg[123];;], x=[:a], y=[5]))
         @test simg(Interp(coo; order=1)) ≈ simg[123]  atol=1e-9
-        @test simg(Interp.([coo]; order=1)) ≈ [simg[123]]  atol=1e-9
     end
 
     coo = ICRSCoords(3.276022, 0.216095)
     for coo in [coo, convert(GalCoords, coo)]
-        @test simg(Near(coo)) ≈ simg[123]
-        @test simg(Near.([coo])) ≈ [simg[123]]
-        @test simg(Interp(coo; order=0)) ≈ simg[123]
-        @test simg(Interp.([coo]; order=0)) ≈ [simg[123]]
+        @test simg(Near(coo)) == simg[123]
+        @test simg(Interp(coo; order=0)) == simg[123]
         @test simg(Interp(coo; order=1)) ≈ -0.0002471391390044121
-        @test simg(Interp.([coo]; order=1)) ≈ [-0.0002471391390044121]
     end
 
     @test_throws ErrorException simg(ICRSCoords(0.1, 0.2))
@@ -114,12 +116,10 @@ end
     @test eltype(axiskeys(simg, :coords)) === GalCoords{Float64}
     @test simg[123] ≈ 4.056696891784668
     for coo in [coo, convert(ICRSCoords, coo)]
-        @test simg(Near(coo)) ≈ simg[123]
-        @test simg(Near.([coo])) ≈ [simg[123]]
-        @test_broken simg(Interp(coo; order=0)) ≈ simg[123]
-        @test_broken simg(Interp.([coo]; order=0)) ≈ [simg[123]]
-        @test_broken simg(Interp(coo; order=1)) ≈ simg[123]  atol=1e-9
-        @test_broken simg(Interp.([coo]; order=1)) ≈ [simg[123]]  atol=1e-9
+        @test simg(Near(coo)) == simg[123]
+        @test simg(Near.([coo])) == [simg[123]]
+        @test simg(Near.([coo;;])) == [simg[123];;]
+        @test keyarr_equal(simg(Near.(KeyedArray([coo;;], x=[:a], y=[5]))), KeyedArray([simg[123];;], x=[:a], y=[5]))
     end
 
     @test_throws ErrorException simg(ICRSCoords(0.1, 0.2))

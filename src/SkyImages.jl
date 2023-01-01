@@ -53,4 +53,13 @@ function eval_at_coords(img, coords; order=nothing, kwargs...)
 end
 
 
+
+# piracy - to be upstreamed?
+AxisKeys.keys_view(keys::Tuple, inds::Tuple{<:AbstractArray}) = ()
+AxisKeys.keys_view(keys::Tuple, inds::Tuple{<:KeyedArray}) = axiskeys(only(inds))
+# AxisKeys.keys_getindex(keys::Tuple, inds::Tuple{<:AbstractArray}) = ()
+# AxisKeys.keys_getindex(keys::Tuple, inds::Tuple{<:KeyedArray}) = axiskeys(only(inds))
+AxisKeys.NamedDims.remaining_dimnames_from_indexing(dimnames_::Tuple, inds::Tuple{<:KeyedArray}) = dimnames(only(inds))
+
+
 end
