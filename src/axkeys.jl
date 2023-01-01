@@ -121,14 +121,14 @@ end
 # end
 
 
+boundingbox(axk) = boundingbox(coordstype(axk), axk)
 
-function boundingbox(h::HealpixAxkeys)
-    corners = (coordstype(h)(0, -π / 2), coordstype(h)(2π, π / 2))
+function boundingbox(::Type{CT}, h::HealpixAxkeys) where {CT}
+    corners = (CT(0, -π / 2), CT(2π, π / 2))
     CoordsRectangle(corners...)
 end
 
-
-function boundingbox(w::WCSAxkeys{NS,NW}) where {NS,NW}
+function boundingbox(::Type{CT}, w::WCSAxkeys{NS,NW}) where {NS,NW,CT<:AbstractSkyCoords}
     edgepoints = @p begin
         [
             CartesianIndex.(1, 1:w.size[2]);
@@ -140,19 +140,12 @@ function boundingbox(w::WCSAxkeys{NS,NW}) where {NS,NW}
         reinterpret(reshape, Float64, __)
         WCS.pix_to_world(w.wcs, collect(__))
         reinterpret(reshape, NTuple{NS,Float64}, @view __[1:NS, :])
-        map(coordstype(w)(deg2rad.(_)...))
+        map(CT(deg2rad.(_)...))
     end
     lons = endpoints(Circular.sample_interval(lon.(edgepoints), 0..2π))
     lats = extrema(lat.(edgepoints))
-    corners = coordstype(w).(lons, lats)
+    corners = CT.(lons, lats)
     rect = CoordsRectangle(corners...)
-end
-
-function boundingbox(::Type{CT}, axk) where {CT<:AbstractSkyCoords}
-    bbox = boundingbox(axk)
-    @modify(bbox |> Properties()) do x
-        convert(CT, x)
-    end
 end
 
 function boundingbox(::Type{ProjectedCoords}, axk::WCSAxkeys{NS,NW}) where {NS,NW}
