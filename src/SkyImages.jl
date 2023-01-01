@@ -22,8 +22,8 @@ function load(path)
     FITS(path) do f
         hdu = only(Iterators.filter(hdu -> is_image_hdu(hdu) || is_healpix_hdu(hdu), f))
         if is_healpix_hdu(hdu)
-            column = 1
-            T = Float64
+            column = 1  # XXX: hardcoded
+            T = Float64  # XXX: hardcoded
             hmap = Healpix.readMapFromFITS(path, column, T)
             nu_ka = KeyedArray(hmap.pixels; coords=HealpixAxkeys(hmap; coordstype=GalCoords{Float64}))
         else
