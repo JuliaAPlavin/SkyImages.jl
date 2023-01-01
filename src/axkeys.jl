@@ -1,7 +1,11 @@
-struct Interp{T, O}
+Base.@kwdef struct Interp{T, O}
     val::T
     order::O
+    avoid_lons::ClosedInterval{Float64} = Inf..(-Inf)
 end
+
+Interp(val, order; kwargs...) = Interp(; val, order, kwargs...)
+Interp(val; kwargs...) = Interp(; val, kwargs...)
 
 itp_spec(o::Int) =
     o == 0 ? BSpline(Constant()) :
@@ -59,6 +63,9 @@ AxisKeys.getkey(A, sels::AbstractArray{<:Interp{<:AbstractSkyCoords}}) = _getkey
 function _getkey(A, sels::AbstractArray{<:Interp{<:AbstractSkyCoords}}, akx::WCSAxkeys{NS,NW}) where {NS,NW}
     worlds = map(sels) do sel
         valc = convert(coordstype(akx), sel.val)
+        valc = @modify(SkyCoords.lon(valc) |> If(∈(sel.avoid_lons))) do l
+            argmin(e -> abs(e - l), endpoints(sel.avoid_lons))
+        end
         world = (SkyCoords.lon(valc) |> rad2deg, SkyCoords.lat(valc) |> rad2deg, ntuple(Returns(1.0), NW - 2)...)
     end
 
