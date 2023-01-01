@@ -9,11 +9,15 @@ begin
 	using Revise
 	import Pkg
 	eval(:(Pkg.develop(path="..")))
+	Pkg.resolve()
 	using SkyImages
 end
 
-# ╔═╡ b406ba5e-5191-4a5b-a044-5565016983d2
-using VLBIData
+# ╔═╡ 37bd1aba-72ba-4b42-b8aa-789318691328
+using Unitful, UnitfulAngles
+
+# ╔═╡ 8e437f0f-20fd-40b7-bfac-e660d8dfa7b8
+using AxisKeys
 
 # ╔═╡ bae108cc-f9d5-4667-aa51-6fc3481b02c5
 using RectiGrids: grid
@@ -28,140 +32,586 @@ using PyPlotUtils; pyplot_style!()
 using DataPipes
 
 # ╔═╡ 36ccd512-b91d-47a7-a86d-a0baeb7faf32
-using DisplayAs
+using DisplayAs: Text as AsText, DisplayAs
 
-# ╔═╡ 7c650877-10f4-4c52-8bb5-4354ce0d705f
+# ╔═╡ 9d343fd3-0258-41e4-9e06-938282491ecf
+using StatsBase
+
+# ╔═╡ 8dc78491-a634-4290-9ecc-c13e9be46c2e
+using SkipNan
+
+# ╔═╡ f7bb31e5-9a69-4a9d-bd62-02c3b7d0d332
 using AccessorsExtra
 
-# ╔═╡ 8e437f0f-20fd-40b7-bfac-e660d8dfa7b8
-using AxisKeys
+# ╔═╡ 1c17fd5e-f047-4bd4-8b00-56fa077c7bb0
+using PyFormattedStrings
 
-# ╔═╡ ea73374b-8da2-40a5-be0d-49c5aafa51d0
-using ImageIO
+# ╔═╡ 5ebbcfb6-f534-490f-947f-b7c039156908
+using PlutoUI
 
 # ╔═╡ d27f13ff-72de-4136-b145-d8a973f23047
+md"""
+!!! info "SkyImages.jl"
+	Load astronomical images of the sky and process them with convenient, general, and composable functions.
+"""
 
+# ╔═╡ a0a180c0-15c5-408d-82a2-3e8d5f1ff484
+md"""
+`SkyImages.jl` focuses on the functionality to **load images and transform them** to the shape most suitable for further analysis --- whatever this shape is in your particular case.
 
-# ╔═╡ cbc9aebe-1120-11ed-3aaa-93fd28c64248
-files = readdir("data"; join=true)
+Loaded images are directly **represented as keyed arrays** (from `AxisKeys.jl`) with axis keys being special objects defined here in `SkyImages.jl`. These axis key objects know how to translate between pixels and sky coordinates on the basis of FITS WCS or other projection (see e.g. a healpix example below).
 
-# ╔═╡ 56a540b3-9aa4-42db-b24b-ef0c6dfb14aa
-simgs = map(files) do path
-	SkyImages.load(path)
-end
+It's most convenient to work with regular rectangular array, and `SkyImages` gives multiple way to obtain image in such form. It can **project onto any reasonable coordinate grid**, or **extract the original data array** as stored in FITS with its coordinates.
 
-# ╔═╡ 414098c1-e025-4dd3-bd99-61a571d70a63
-simgs .|> DisplayAs.Text
+_Extra features such as plotting are explicitly out of scope for `SkyImages`. There are multiple commonly used plotting libraries, and we don't impose any specific choice. Examples in this notebook use `matplotlib` through `PyPlot.jl`._
+"""
 
-# ╔═╡ 5704ec39-bdda-4361-934a-ef98b6a91289
-map(simgs[[2, 5]]) do simg
-	timg = eval_at_coords(
-		simg,
-		map(Base.splat(ICRSCoords), grid(ra=range(-π, π; length=500), dec=range(-π/2, π/2; length=500)))
-	)
-	plt.figure(figsize=(10, 6))
-	imshow_ax(timg; norm=matplotlib.colors.LogNorm(vmin=1, vmax=300))
+# ╔═╡ aa6da229-640c-4eae-a0fe-9bd2742fa849
+md"""
+Notable differences from `AstroImages.jl`:
+- `AstroImages` makes image a custom type and implements plotting functions specific to this type. \
+  `SkyImages` represents images as regular keyed arrays, so general plotting packages can plot them just fine. One doesn't easily get the non-uniform grid lines plotted though, unlike `AstroImages`.
+- `SkyImages` directly treats images as having coordinates (`SkyCoords.jl`), not just pixel indices. For example, one can:
+  - Directly extract values at coordinates of interest
+  - Project an image onto an arbitrary coordinate grid, see various examples below
+  - Extract the image bounding box and easily generate a coordinate grid on it (`RectiGrids.jl` interface)
+  Using `AstroImages` involves explicitly working with WCS objects more often.
+- `SkyImages` support healpix FITS images, in addition to FITS + WCS images
+- For now, we only support celestial WCS. Other axes such as the polarization or frequency aren't implemented yet, but this is not a fundamental limitation.
+"""
+
+# ╔═╡ b02f575f-bbd5-42c0-aab3-37415b66bd76
+md"""
+# Detailed example
+"""
+
+# ╔═╡ 72a56fff-84ab-4fdb-882f-e0ee6efada45
+md"""
+Let's load one of the images. This is the map of the whole sky in gamma rays, as see by Fermi LAT.
+"""
+
+# ╔═╡ 7de9fc6e-f652-48bc-babe-af0e56a8c427
+simg = SkyImages.load("data/intens_scaled_ait_144m_gt1000_psf3_gal_0p1.fits");
+
+# ╔═╡ 41f3ff07-8ebe-4224-ad1b-9342ee4e7e07
+simg |> AsText
+
+# ╔═╡ b2649127-99b3-4ee4-aa54-d11f46f2c04e
+md"""
+Images are represented in `SkyImages` as keyed arrays (from `AxisKeys.jl`), with one "axis" corresponding to celestial coordinates. Other axes _(not present in this example)_ could represent frequencies, polarizations, or other parameters.
+
+Displaying keyed arrays prints the axis keys (coordinates) as the first column, and array values as the second. This looks cleaner in the Julia REPL, while Pluto doesn't show colors.
+"""
+
+# ╔═╡ f26a1360-ba03-4df3-8ba0-ffd707a34bfb
+md"""
+All shown values are zero, but this is only true for array edges. `extrema()` confirm that:
+"""
+
+# ╔═╡ e42ac814-ca50-4464-8a19-59695b1f9ef0
+extrema(simg)
+
+# ╔═╡ ec6d0165-18e5-41f6-91e0-382840cde0f0
+md"""
+Coordinate values are shown here, but they are never materialized. Instead, the image axis computes them on demand when needed. \
+For example, in this case coordinates are defined by the World Coordinate System read from the FITS file. The WCS object can directly be accessed, if necessary:
+"""
+
+# ╔═╡ b0c2a790-231a-4ebc-a755-627cca858325
+axiskeys(simg, :coords).wcs
+
+# ╔═╡ 170f4c04-0961-44d5-876e-9e9f51834e32
+md"""
+We can extract image values closest to any given coordinates using the `Near` selector (defined in `AxisKeys.jl`). \
+`Near` supports both the native image coordinates -- galactic in this case:
+"""
+
+# ╔═╡ 4285e435-549e-487f-9013-95f8d2958cbe
+simg[Near(GalCoords(0, 0))]
+
+# ╔═╡ de270142-3c0c-45b9-968f-0ef68c5074b0
+md"""
+... and any other kind of coordinates as well:
+"""
+
+# ╔═╡ 62fd3d3c-d8a6-48e4-8d03-c27d2ef581f0
+simg[Near(ICRSCoords(0, 0))]
+
+# ╔═╡ 6ed9fc21-08b6-4f39-b9c3-29abbcd3cee1
+md"""
+Alternatively, instead of extracting the nearest value, we can use interpolation of different orders. \
+Zeroth order -- constant (same as the `Near` selector), first order -- linear, and so on:
+"""
+
+# ╔═╡ 17671ee5-bda8-4ffd-b1ef-dbb98eb7339a
+simg(SkyImages.Interp(ICRSCoords(0, 0), order=0))
+
+# ╔═╡ 16bc419e-1c2a-4617-ba06-fcaa943066ca
+simg(SkyImages.Interp(ICRSCoords(0, 0), order=1))
+
+# ╔═╡ 6cb2f138-5bba-406a-a505-4c60645d1dcb
+md"""
+Arrays of `Near` or `Interp` are selectors themselves, which is the base `AxisKeys` semantic. Such vectorized selections are implemented efficiently in `SkyImages`, and can directly be used to obtain a regular rectangular image in any coordinates.
+
+First, let's create a _(lazy)_ 500×500 coordinate grid in equatorial coordinates:
+"""
+
+# ╔═╡ 6c7b4e2d-7f67-428a-8d22-c2bfb0a96a42
+coords = grid(ICRSCoords, range(π, -π; length=500), range(-π/2, π/2; length=500));
+
+# ╔═╡ e052b45d-ef9e-41de-aeee-c0fce166f4f6
+coords |> DisplayAs.withcontext(:displaysize => (20, 200))
+
+# ╔═╡ a6d02948-0e29-4fa6-a2b6-a8f7d605fb97
+md"""
+This is a regular keyed array, with keys being RA and Dec, and values being the actual coordinates.
+"""
+
+# ╔═╡ 9905274c-40b2-4f8c-bf87-9f0f939699bf
+md"""
+Select the closest image value to each coordinate from this grid:
+"""
+
+# ╔═╡ 7ac37418-514a-4b41-beae-2bec303c9737
+eq_img = simg(Near.(coords)) |> copy;
+
+# ╔═╡ 83946094-3f59-4d98-92cc-b79558f6a504
+eq_img |> AsText
+
+# ╔═╡ 8efcbb46-9685-479f-96b9-816aacd2a851
+md"""
+And transform both axes keys to degrees for convenience:
+"""
+
+# ╔═╡ 59c20159-4614-47d0-98ab-bf6f4991caed
+eq_deg_img = @modify(xs -> xs .* rad2deg(1), axiskeys(eq_img) |> Elements());
+
+# ╔═╡ e16e262d-8366-41cc-ba5c-085188dbe3c7
+md"""
+That's the visualization of what we got:
+"""
+
+# ╔═╡ e9b9da8e-80c3-47dc-b1e4-db6d490e7d12
+begin
+	plt.figure()
+	imshow_ax(eq_deg_img)
+	xylabels("RA (°)", "Dec (°)")
 	plt.gcf()
 end
 
-# ╔═╡ 884f8a8c-8cbc-4f60-b9a1-98857dab1b2a
-map(simgs[[2, 5]]) do simg
-	tcoords = map(Base.splat(ICRSCoords), grid(ra=range(-π, π; length=50), dec=range(-π/2, π/2; length=50)))
-	simg(Near.(tcoords))
-end
+# ╔═╡ d177d489-072c-4dcd-a72f-0eeab7fedc2a
+md"""
+# Images of compact regions
+"""
 
-# ╔═╡ 238cd3ee-f302-42c4-9a03-ef781fb78ea3
+# ╔═╡ 3b5fbd3c-cfff-4f21-9736-589e9c01e656
+md"""
+## Extract bounding box
+"""
 
+# ╔═╡ a5ed3228-f068-4784-9d7a-61530cbd40e6
+md"""
+The first example demonstrated an image that covers the whole sky, and we manually generated the target coordinate grid. \
+It was easy for the whole sky, but what to do when the image only covers a small part -- some specific object?
 
-# ╔═╡ 82d9dbdb-ff18-4838-9ab5-f189cb5c8fa7
-map(simgs) do simg
-	timg = @p begin
-		only(axiskeys(simg))
-		boundingbox
-		grid(lengths=500)
-		eval_at_coords(simg, __)
+First, let's load such an image:
+"""
+
+# ╔═╡ 18d26c89-e953-46bf-9a96-512d55c75a7d
+small_img = SkyImages.load("data/656nmos.fits");
+
+# ╔═╡ 0c7b5add-fc89-4633-8c1b-9f472cb5707e
+md"""
+We want to extract its bounding box, and generate a grid over that box. The bbox can be calculated from the corresponding WCS axiskeys:
+"""
+
+# ╔═╡ 8f6a723c-bc5c-46e9-aaeb-af13a25ba4d8
+axk = axiskeys(small_img, :coords)
+
+# ╔═╡ 5ab12071-3a83-452c-b85e-7b475b5a86e2
+md"""
+and here's the bbox itself:
+"""
+
+# ╔═╡ dfb02cfb-5451-44da-bb74-716aa0fb9cb8
+bbox = boundingbox(axk)
+
+# ╔═╡ cb61bd15-0c0c-43f8-abc5-4585b7544c16
+md"""
+It's always a rectangle in some coordinates. The default choice for the coordinate type is taken from the WCS itself: in this case, the image is defined in equatorial FK5 coordinates.
+
+Now, create a _(again, lazy)_ 1000×1000 grid of coordinates over this bbox:
+"""
+
+# ╔═╡ 50c0fd27-9f9d-4fd5-a053-8a9cbdc06f81
+small_coords = grid(bbox; lengths=1000);
+
+# ╔═╡ 385d8b97-acb4-4cc0-b258-a4237bbf296e
+small_coords |> DisplayAs.withcontext(:displaysize => (20, 200))
+
+# ╔═╡ c7a78987-6c06-41e9-bcc3-067468efe961
+md"""
+... and compute the image values on this grid, same as we did in the first example:
+"""
+
+# ╔═╡ d0de65a3-82e1-44f7-be84-5c09511adbda
+eagle_plt = begin
+	plt.figure()
+	@p begin
+		small_img(SkyImages.Interp.(small_coords, order=1))
+		@modify(xs -> xs .* rad2deg(1), __ |> axiskeys(_) |> Elements())
+		imshow_ax(__; norm=matplotlib.colors.Normalize(vmin=0, vmax=quantile(skipnan(__), 1-3e-4)))
 	end
-	plt.figure(figsize=(10, 6))
-	imshow_ax(timg; norm=matplotlib.colors.SymLogNorm(vmin=0, linthresh=1e-3, vmax=300))
+	xylabels("RA (°)", "Dec (°)")
+	plt.xticks(rotation=15)
 	plt.gcf()
 end
 
-# ╔═╡ b2226507-77c6-4fc7-8511-1acc23ff3953
-map(simgs) do simg
-	timg = @p begin
-		only(axiskeys(simg))
-		boundingbox(ICRSCoords)
-		grid(lengths=500)
-		eval_at_coords(simg, __)
+# ╔═╡ e2e336f8-26da-456f-8feb-546086b97861
+md"""
+## Projected coordinates
+"""
+
+# ╔═╡ 7180a98a-1639-4647-a973-5cb4a654776c
+md"""
+It's common to work with astronomical images in so-called projected coordinates. They have their origin at a certain point on the celestial sphere, and define local axes that typically go along the corresponding latitude and longitude. The main difference from regular coordinates is that vertical and horizontal scales are the same: one arcsecond of local longitude is always the same separation as one degree of local latitude. This greatly simplifies working with images of compact sky regions, making them effectively flat.
+"""
+
+# ╔═╡ 7b1bc5cd-15a2-4b6e-bc23-983201ea6f88
+md"""
+`SkyImages` let you compute the image bounding box in projected coordinates as well. Here we use projected Galactic coordinates:
+"""
+
+# ╔═╡ 8b2bc998-e4d6-42eb-88b7-abec6d3c5b1b
+bbox_proj = boundingbox(ProjectedCoords{GalCoords}, axk)
+
+# ╔═╡ f4c9635b-86b9-4ea7-8433-6d42f347695f
+md"""
+Everything else stays the same as before:
+"""
+
+# ╔═╡ 918e65d6-2e7f-4db5-9937-ebcd719b42ff
+begin
+	plt.figure()
+	@p begin
+		grid(bbox_proj; lengths=1000)
+		small_img(SkyImages.Interp.(__, order=2))
+		@modify(xs -> xs .* rad2deg(1), axiskeys(__) |> Elements());
+		imshow_ax(__; norm=matplotlib.colors.Normalize(vmin=0, vmax=quantile(skipnan(__), 1-3e-4)))
 	end
-	plt.figure(figsize=(10, 6))
-	imshow_ax(timg; norm=matplotlib.colors.SymLogNorm(vmin=0, linthresh=1e-3, vmax=300))
+	xylabels("Rel Gal lon (°)", "Rel Gal lat (°)")
+	plt.xticks(rotation=15)
 	plt.gcf()
 end
 
-# ╔═╡ a8a8f8d2-7950-45df-ad94-c75bda105a07
-map(simgs[[1, 3, 4]]) do simg
-	timg = @p begin
-		only(axiskeys(simg))
-		boundingbox(ProjectedCoords)
-		grid(lengths=500)
-		eval_at_coords(simg, __)
-	end
+# ╔═╡ e7952445-dbfc-4e06-a00e-d23038f6435b
+md"""
+# All-sky images
+"""
+
+# ╔═╡ 6555eb04-d630-4d03-800b-5d023c8e0522
+md"""
+We've shown an all-sky image in the first example. However, there are a few other notable details.
+"""
+
+# ╔═╡ 2baea1f0-2a27-4aca-991b-6f3e7bb13c64
+md"""
+## Spherical projections
+"""
+
+# ╔═╡ 5e631aff-d7a4-487c-b21a-03c47be08d8e
+md"""
+Celestial images are often shown in a common spherical projection instead of a simple rectangle. \
+Here we show how to do this with `matplotlib` (`PyPlot.jl`):
+"""
+
+# ╔═╡ e98ccebd-b7fd-4de3-8e16-4056512ed1a9
+fermi_galplt = let
 	plt.figure(figsize=(10, 6))
-	imshow_ax(timg; norm=matplotlib.colors.SymLogNorm(vmin=0, linthresh=1e-3, vmax=300))
-	plt.gca().invert_xaxis()
+	plt.subplot(111, projection="mollweide")
+	@p begin
+		SkyImages.load("data/intens_scaled_ait_144m_gt1000_psf3_gal_0p1.fits")
+		__(Near.(grid(GalCoords, range(-π, π; length=1500), range(-π/2, π/2; length=1500))))
+		@modify(-, __ |> axiskeys(_, :l) |> Elements())
+		pcolormesh_ax(__; cmap=:gnuplot2)
+	end
 	plt.gcf()
 end
 
-# ╔═╡ 3a9071de-38a6-4134-9d82-f5a8a1faae28
-map(simgs[[1, 3, 4, 5]]) do simg
-	timg = @p begin
-		only(axiskeys(simg))
-		boundingbox(ProjectedCoords{GalCoords})
+# ╔═╡ a97f89d2-b8fc-4b7b-b0ab-c4170017db27
+md"""
+Note that base `matplotlib` cannot invert the horizontal axis of a spherical projection itself. Here the inversion is done manually before actual plotting, by negating the corresponding axis keys.
+"""
+
+# ╔═╡ 42be67e7-bc56-49d4-a391-fededc1bd1b6
+md"""
+## Healpix
+
+Healpix is also a common format for astronomical images covering the whole sky. \
+`SkyImages.jl` transparently supports them as well, with the same interface as FITS + WCS images shown above:
+"""
+
+# ╔═╡ 999c382b-5de9-4324-bea4-f6ddb1f37735
+let 
+	plt.figure(figsize=(10, 6))
+	plt.subplot(111, projection="mollweide")
+	@p begin
+		SkyImages.load("data/Halpha_fwhm06_1024.fits")
+		__(Near.(grid(ICRSCoords, range(-π, π; length=1500), range(-π/2, π/2; length=1500))))
+		@modify(-, __ |> axiskeys(_, :ra) |> Elements())
+		pcolormesh_ax(__; norm=matplotlib.colors.SymLogNorm(vmin=0, linthresh=1), cmap=:gnuplot2)
 	end
+	plt.gcf()
 end
 
-# ╔═╡ c3572ffe-e9ba-47a6-b721-ce12ed578964
-map(simgs[[1, 3, 4, 5]]) do simg
+# ╔═╡ c03ddad8-d708-4d4f-8e08-ae7ce5a05bb9
+md"""
+# Advanced
+"""
+
+# ╔═╡ 3d868917-38a8-41cf-acb5-d5a1a2615448
+md"""
+## Multiple images of M87
+"""
+
+# ╔═╡ 487f817d-d67f-4152-bae6-7ec593f253fe
+md"""
+Here, we show a neat example of visualizing multiple images of the same astronomical object --- the M87 active galaxy.
+
+Images span many orders of magnitude in extent and resolution, from kiloparsec to astronomical units. Together they provide a beautiful view of the M87 jet and the immediate surroundings of the central black hole.
+"""
+
+# ╔═╡ 594c91e1-565a-49ad-9b77-20aabe7e71f4
+imspecs = @p [
+	(file="NVSS_1995-02-27_J123049.42+122328.0.fits", size=300u"as", dynrange=10, label="VLA NVSS"),
+	(file="1-VLASS__2.2.ql.T14t19.J123049.42+122328.0.fits", size=45u"as", dynrange=7, label="VLASS"),
+	(file="1228+126.u.2021_05_01.icn.fits", size=30u"mas", dynrange=300, label="VLBI MOJAVE"),
+	(file="hst_05122_01_wfpc2_f547m_wf_sci.fits", size=25u"as", dynrange=100, label="HST"),
+	(file="hst_05122_01_wfpc2_f547m_wf_sci.fits", size=2u"as", dynrange=10, label="HST zoom"),
+	(file="eht.fits", size=1u"mas", dynrange=1, label="EHT"),
+	(file="intens_scaled_ait_144m_gt1000_psf3_gal_0p1.fits", size=2u"°", dynrange=1, label="Fermi"),
+] |> @set(__ |> Elements() |> _.file |> dirname = "data/m87")
+
+# ╔═╡ 09a7db9c-0afb-41a1-a66b-924469ea003c
+m87_coord = ICRSCoords(deg2rad.((187.70593075416664, 12.391123236111111))...)
+
+# ╔═╡ 1c4de053-f8d5-4363-8224-af5a71594978
+function center_at_peak(timg)
+	peakix = @p timg |> skipnan |> argmax
+	timg = @modify(x -> x .- x[peakix[1]], axiskeys(timg)[1])
+	timg = @modify(x -> x .- x[peakix[2]], axiskeys(timg)[2])
+end
+
+# ╔═╡ 95b0e957-1deb-4176-b819-9d716a09e5b1
+m87_images = map(imspecs) do p
 	timg = @p begin
-		only(axiskeys(simg))
+		SkyImages.load(p.file)
+		# if crval is zero - no actual position in FITS, replace crval with m87 coords
+		simg = @modify(__ |> axiskeys(_, :coords).wcs.crval |> If(iszero)) do _
+			[SkyCoords.lon(m87_coord), SkyCoords.lat(m87_coord)] .|> rad2deg
+		end
+		# extract the bbox
+		axiskeys(__, :coords)
 		boundingbox(ProjectedCoords{ICRSCoords})
+		# the original projection center can be arbitrary - we want (0, 0) to be M87
+		SkyImages.project(m87_coord)
+		# cut the bbox to twice the specified image size
+		@modify(__ |> Properties() |> _.xy |> Elements() |> abs) do x
+			min(x, ustrip(u"rad", 2*p.size))
+		end
+		# compute the image on a grid over this bbox
 		grid(lengths=500)
-		eval_at_coords(simg, __)
+		simg(SkyImages.Interp.(__, 1))
 	end
-	plt.figure(figsize=(10, 6))
-	imshow_ax(timg; norm=matplotlib.colors.SymLogNorm(vmin=0, linthresh=1e-3, vmax=300))
-	plt.gca().invert_xaxis()
+	if p.size < 5u"as"
+		# for small sub-as images, center them on the peak: stored image coordinates can be noticeably off at these scale
+		timg = center_at_peak(timg)
+	end
+	# finally, cut the image to exactly the specified size
+	timg = timg(0±p.size, 0±p.size)
+	@insert p.image = timg
+end;
+
+# ╔═╡ 2bd8cb76-4c90-48f6-80d5-6c790045f314
+let
+	fig, ax = plt.subplots(1, length(m87_images); figsize=(length(m87_images) * 3, 3.5))
+	@p begin
+		m87_images
+		# should go smallest to largest
+		sort(by=__ -> __.image |> axiskeys(__, :ra) |> extrema |> abs(__[2] - __[1]))
+		zip(__, ax)
+		map() do (p, ax)
+			plt.sca(ax)
+			plt.xticks([])
+			plt.yticks([])
+			plt.title(p.label)
+			@p p.image |>
+				imshow_ax(__;
+					norm=matplotlib.colors.SymLogNorm(vmin=max(0, __ |> skipnan |> minimum), linthresh=maximum(skipnan(__))/p.dynrange, vmax=quantile(skipnan(__), 1-3e-4)),
+					interpolation=:gaussian
+				)
+			plt.gca().add_artist(ScalebarArtist(
+				[
+					(u"rad"/u"as", x -> x < 1e-4 ? f"{10^6*x:d} μas" : x < 0.1 ? f"{1000x:d} mas" : x < 500 ? f"{x}\"" : f"{x/60:d}'"),
+					(80*u"rad"/u"as", x -> x < 1e-2 ? f"{round(x * 206265, sigdigits=1):d} AU" : x < 1e3 ? f"{x} pc" : f"{x / 1000:d} kpc")
+				];
+				loc="lower right", color=:w,
+			))
+			plt.gca().invert_xaxis()
+		end
+	end
+	for (a, b) in zip(ax[1:end-1], ax[2:end])
+		add_zoom_patch(fig, a, b, :horizontal; color=:"0.5")
+	end
+	plt.tight_layout()
 	plt.gcf()
 end
 
-# ╔═╡ 821b8086-fa80-4694-a4a9-e299b4a446cb
+# ╔═╡ a9cba3ab-275a-4250-a207-88506d796945
+md"""
+## Extracting original array
+"""
+
+# ╔═╡ 16ac4fe7-009b-4be5-8ce0-1c59385bec0a
+md"""
+In all the above example, we created an arbitrary coordinate grid, and projected the loaded image onto that grid.
+This is often the right way to go, as image analysis tends to be most convenient in a specific fixed coordinate system --- typically, in projected coordinates for compact images.
+
+However, sometimes it's useful or even necessary to work with the original image exactly as it's stored in the FITS file. `SkyImages.native_rect_image` function extracts the original rectangular image, putting it into a keyed array with axis keys derived on a best-effort basis. The image data is not copied, so this operation is efficient.
+"""
+
+# ╔═╡ 4d7e1f0f-327a-4316-8595-22d149a13939
+md"""
+Here is the same image as in the first example (Fermi LAT sky map), shown directly in pixel coordinates:
+"""
+
+# ╔═╡ cb93aba9-0fd6-4716-b9a4-dde69c365570
+begin
+	plt.figure()
+	plt.imshow(SkyImages.native_rect_image(simg) |> permutedims)
+	plt.gcf()
+end
+
+# ╔═╡ 0fe458e1-c021-4115-a941-8a1eeb67f63b
+md"""
+We can display the same array taking axis keys into account:
+"""
+
+# ╔═╡ 167eec1b-7f36-4ff0-9333-b086a09fb6b2
+begin
+	plt.figure()
+	pcolormesh_ax(SkyImages.native_rect_image(simg))
+	plt.gca().set_aspect(:equal)
+	plt.gcf()
+end
+
+# ╔═╡ ec6d6033-0fd9-4b03-a82d-16f4258dd60b
+md"""
+Of course, this works with compact images as well:
+"""
+
+# ╔═╡ 8dcbf3c5-0de4-4235-8330-45886c562535
+begin
+	plt.figure()
+	@p SkyImages.native_rect_image(small_img) |>
+		pcolormesh_ax(__; norm=matplotlib.colors.Normalize(vmin=0, vmax=quantile(skipnan(__), 1-3e-4)))
+	plt.gca().set_aspect(:equal)
+	plt.gcf()
+end
+
+# ╔═╡ cc5439ff-17b7-4a8f-98fb-3bf82bc1544f
+md"""
+Compare this plot to the same image in Galactic and equatorial coordinates from previous examples.
+"""
+
+# ╔═╡ c0ef8625-3d6a-457b-a07c-cc03ecb31a5d
+md"""
+## `AstroImages.jl` plot comparison
+"""
+
+# ╔═╡ ed5d3e9d-5b11-4c9e-b701-c02ece625d01
 
 
-# ╔═╡ 8c5331b1-affd-4048-87f7-e377a0e9f817
+# ╔═╡ 2e9afe63-0048-4e91-b9b3-778957d3df00
 
 
-# ╔═╡ fa9bf714-48fc-4dce-8dbe-2b8149187475
+# ╔═╡ 6be80fa0-ef2d-452b-a278-8f04abbc4f9c
+
+
+# ╔═╡ 31f5c00d-2be8-4843-98e0-1bab85ac2f57
+md"""
+- extract original rect image in projected coords
+- projected with specified axis direction (e.g. to make jet horizontal) ???
+"""
+
+# ╔═╡ 8dd355b7-114a-4627-81a0-fc33d79e2a6d
+
+
+# ╔═╡ 9f308f8a-3033-429a-bde6-36cb9f1ab1b0
+
+
+# ╔═╡ 02078d2d-c545-4b3f-8b4c-9dff5788aaae
+
+
+# ╔═╡ 5eb368bf-6fc3-484e-9b40-403773f6f4ab
+begin
+	# https://github.com/JuliaAstro/WCS.jl/pull/46
+	
+	import ConstructionBase
+	
+	function ConstructionBase.setproperties(obj::SkyImages.WCS.WCSTransform, patch::NamedTuple)
+		res = deepcopy(obj)
+		for (k, v) in pairs(patch)
+			setproperty!(res, k, v)
+		end
+		return res
+	end
+end
+
+# ╔═╡ e18f9920-6879-49a0-abe1-94a105734dd5
+
+
+# ╔═╡ 4ae186bb-e7c7-4aab-9c70-04a149e46e7f
 
 
 # ╔═╡ c758da66-0444-4e4d-aac8-e62dfa93dfbf
 
 
-# ╔═╡ c1f637a6-7ef8-49c9-a741-a38c57326ec0
-
-
 # ╔═╡ 1265dd87-7395-4637-8b07-8dd5df20e43b
 import AstroImages, Plots
 
-# ╔═╡ 5adf83a8-723d-4017-afb4-e0ce2340db04
-[[AstroImages.load(files[1])[Z=1, AstroImages.Dim{:4}(1)]]; map(files[[3, 4, 5]]) do path
-	AstroImages.load(path)
-end]
+# ╔═╡ 0962b3ae-4183-4e5c-8e5d-1c0817e548b7
+[
+	fermi_galplt;
+	AstroImages.implot(AstroImages.load("data/intens_scaled_ait_144m_gt1000_psf3_gal_0p1.fits"))
+]
 
-# ╔═╡ 9e8f321b-e078-4e86-bca6-7f29ae433792
-[AstroImages.implot(AstroImages.load(files[1])[Z=1, AstroImages.Dim{:4}(1)]); map(files[[3, 4, 5]]) do path
-	AstroImages.implot(AstroImages.load(path))
-end]
+# ╔═╡ 9fbb2cba-005c-4770-97d9-6a4e279cb2a7
+[
+	eagle_plt;
+	AstroImages.implot(AstroImages.load("data/656nmos.fits"))
+]
+
+# ╔═╡ e28ee6fb-dbab-4884-867f-c60e9bf55e65
+[
+	let
+		plt.figure()
+		@p begin
+			SkyImages.load("data/1228+126.u.2021_05_01.icn.fits")
+			SkyImages.native_rect_image()
+			@modify(xs -> (xs .- mean(xs)) .* (rad2deg(1) * 3600e3), axiskeys(__) |> Elements())
+			imshow_ax(__; norm=matplotlib.colors.SymLogNorm(vmin=0, linthresh=maximum(skipnan(__))/1e3, vmax=maximum(skipnan(__))))
+		end
+		set_xylims((0 ± 30)^2; inv=:x)
+		plt.colorbar()
+		xylabels("Rel RA (mas)", "Rel Dec (mas)")
+		plt.gcf()
+	end,
+	AstroImages.implot(AstroImages.load("data/1228+126.u.2021_05_01.icn.fits")[Z=1, AstroImages.Dim{:4}(1)])
+]
+
+# ╔═╡ 9515317f-3fdb-4b8c-8686-3d0b1a42ffe3
+TableOfContents()
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -169,41 +619,51 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 AccessorsExtra = "33016aad-b69d-45be-9359-82a41f556fd4"
 AstroImages = "fe3fc30c-9b16-11e9-1c73-17dabf39f4ad"
 AxisKeys = "94b1ba4f-4ee9-5380-92f1-94cde586c3c5"
+ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
 DataPipes = "02685ad9-2d12-40c3-9f73-c6aeda6a7ff5"
 DisplayAs = "0b91fe84-8a4c-11e9-3e1d-67c38462b6d6"
-ImageIO = "82e4d734-157c-48bb-816b-45c225c6df19"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+PyFormattedStrings = "5f89f4a4-a228-4886-b223-c468a82ed5b9"
 PyPlotUtils = "5384e752-6c47-47b3-86ac-9d091b110b31"
 RectiGrids = "8ac6971d-971d-971d-971d-971d5ab1a71a"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+SkipNan = "aed68c70-c8b0-4309-8cd1-d392a74f991a"
 SkyCoords = "fc659fc5-75a3-5475-a2ea-3da92c065361"
 SkyImages = "2d546a2e-713c-402d-bee5-ba90cc43b84b"
-VLBIData = "679fc9cc-3e84-11e9-251b-cbd013bd8115"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+UnitfulAngles = "6fb2a4bd-7999-5318-a3b2-8ad61056cd98"
 
 [compat]
-AccessorsExtra = "~0.1.4"
-AstroImages = "~0.3.0"
-AxisKeys = "~0.2.4"
-DataPipes = "~0.2.16"
+AccessorsExtra = "~0.1.9"
+AstroImages = "~0.3.1"
+AxisKeys = "~0.2.7"
+ConstructionBase = "~1.4.1"
+DataPipes = "~0.2.17"
 DisplayAs = "~0.1.6"
-ImageIO = "~0.6.6"
-Plots = "~1.31.5"
-PyPlotUtils = "~0.1.13"
-RectiGrids = "~0.1.9"
+Plots = "~1.31.7"
+PlutoUI = "~0.7.39"
+PyFormattedStrings = "~0.1.10"
+PyPlotUtils = "~0.1.17"
+RectiGrids = "~0.1.13"
 Revise = "~3.4.0"
+SkipNan = "~0.2.0"
 SkyCoords = "~1.0.1"
 SkyImages = "~0.1.0"
-VLBIData = "~0.3.10"
+StatsBase = "~0.33.21"
+Unitful = "~1.11.0"
+UnitfulAngles = "~0.6.2"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.8.0-rc3"
+julia_version = "1.8.0"
 manifest_format = "2.0"
-project_hash = "94cf1ce17bfd6d3c668b5b10e3f159df6df7e113"
+project_hash = "e2dbca287ed3bfdc3cebb9c51a9ae87193167b5d"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -211,17 +671,23 @@ git-tree-sha1 = "69f7020bd72f069c219b5e8c236c1fa90d2cb409"
 uuid = "621f4979-c628-5d54-868e-fcf4e3e8185c"
 version = "1.2.1"
 
+[[deps.AbstractPlutoDingetjes]]
+deps = ["Pkg"]
+git-tree-sha1 = "8eaf9f1b4921132a4cff3f36a1d9ba923b14a481"
+uuid = "6e696c72-6542-2067-7265-42206c756150"
+version = "1.1.4"
+
 [[deps.Accessors]]
 deps = ["Compat", "CompositionsBase", "ConstructionBase", "Dates", "InverseFunctions", "LinearAlgebra", "MacroTools", "Requires", "Test"]
-git-tree-sha1 = "c877a35749324754d3c8fffb09fc1f9db144ff8f"
+git-tree-sha1 = "8557017cfc7b58baea05a43ed35538857e6d35b4"
 uuid = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
-version = "0.1.18"
+version = "0.1.19"
 
 [[deps.AccessorsExtra]]
 deps = ["Accessors", "ConstructionBase", "InverseFunctions", "Reexport", "Requires"]
-git-tree-sha1 = "4872e023a4d9d0c749ffb347aa514eec6d9d6875"
+git-tree-sha1 = "ef45a3c71f3a7e98a107ec66222e04250185c7bb"
 uuid = "33016aad-b69d-45be-9359-82a41f556fd4"
-version = "0.1.5"
+version = "0.1.9"
 
 [[deps.Adapt]]
 deps = ["LinearAlgebra"]
@@ -235,15 +701,15 @@ version = "1.1.1"
 
 [[deps.ArrayInterface]]
 deps = ["ArrayInterfaceCore", "Compat", "IfElse", "LinearAlgebra", "Static"]
-git-tree-sha1 = "621913bff3923ff489e4268ba2b425bfacbb1759"
+git-tree-sha1 = "0582b5976fc76523f77056e888e454f0f7732596"
 uuid = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
-version = "6.0.21"
+version = "6.0.22"
 
 [[deps.ArrayInterfaceCore]]
 deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse"]
-git-tree-sha1 = "12bebdb8491042f36c8700705f11c28fef284515"
+git-tree-sha1 = "40debc9f72d0511e12d817c7ca06a721b6423ba3"
 uuid = "30b0a656-2188-435a-8636-2ec0e6a096e2"
-version = "0.1.16"
+version = "0.1.17"
 
 [[deps.Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
@@ -254,10 +720,16 @@ uuid = "5c4adb95-c1fc-4c53-b4ea-2a94080c53d2"
 version = "0.1.3"
 
 [[deps.AstroImages]]
-deps = ["AbstractFFTs", "AstroAngles", "ColorSchemes", "DimensionalData", "FITSIO", "FileIO", "ImageAxes", "ImageBase", "ImageShow", "MappedArrays", "PlotUtils", "Printf", "RecipesBase", "Statistics", "Tables", "UUIDs", "WCS"]
-git-tree-sha1 = "b5ced2895f6cfdcd625bc1799177d3111c7fd0ae"
+deps = ["AbstractFFTs", "AstroAngles", "ColorSchemes", "DimensionalData", "FITSIO", "FileIO", "ImageAxes", "ImageBase", "ImageIO", "ImageShow", "MappedArrays", "PlotUtils", "Printf", "RecipesBase", "Statistics", "Tables", "UUIDs", "WCS"]
+git-tree-sha1 = "796b7afebb3577d70c9c91caa530b32e42b353fc"
 uuid = "fe3fc30c-9b16-11e9-1c73-17dabf39f4ad"
-version = "0.3.0"
+version = "0.3.1"
+
+[[deps.AxisAlgorithms]]
+deps = ["LinearAlgebra", "Random", "SparseArrays", "WoodburyMatrices"]
+git-tree-sha1 = "66771c8d21c8ff5e3a93379480a2307ac36863f7"
+uuid = "13072b0f-2c55-5437-9ae7-d433b7a33950"
+version = "1.0.1"
 
 [[deps.AxisArrays]]
 deps = ["Dates", "IntervalSets", "IterTools", "RangeArrays"]
@@ -267,9 +739,9 @@ version = "0.4.6"
 
 [[deps.AxisKeys]]
 deps = ["AbstractFFTs", "ChainRulesCore", "CovarianceEstimation", "IntervalSets", "InvertedIndices", "LazyStack", "LinearAlgebra", "NamedDims", "OffsetArrays", "Statistics", "StatsBase", "Tables"]
-git-tree-sha1 = "945ec1c6b21f166b1f6f3cf628b770c5a253fb73"
+git-tree-sha1 = "88cc6419032d0e3ea69bc65d012aa82302774ab8"
 uuid = "94b1ba4f-4ee9-5380-92f1-94cde586c3c5"
-version = "0.2.4"
+version = "0.2.7"
 
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
@@ -353,9 +825,9 @@ version = "0.12.8"
 
 [[deps.Compat]]
 deps = ["Dates", "LinearAlgebra", "UUIDs"]
-git-tree-sha1 = "924cdca592bc16f14d2f7006754a621735280b74"
+git-tree-sha1 = "5856d3031cdb1f3b2b6340dfdc66b6d9a149a374"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "4.1.0"
+version = "4.2.0"
 
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -380,9 +852,9 @@ version = "1.7.0"
 
 [[deps.ConstructionBase]]
 deps = ["LinearAlgebra"]
-git-tree-sha1 = "59d00b3139a9de4eb961057eabb65ac6522be954"
+git-tree-sha1 = "fb21ddd70a051d882a1686a5a550990bbe371a95"
 uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
-version = "1.4.0"
+version = "1.4.1"
 
 [[deps.Contour]]
 git-tree-sha1 = "d05d9e7b7aedff4e5b51a029dced05cfb6125781"
@@ -391,9 +863,9 @@ version = "0.6.2"
 
 [[deps.CovarianceEstimation]]
 deps = ["LinearAlgebra", "Statistics", "StatsBase"]
-git-tree-sha1 = "a3e070133acab996660d31dcf479ea42849e368f"
+git-tree-sha1 = "3c8de95b4e932d76ec8960e12d681eba580e9674"
 uuid = "587fd27a-f159-11e8-2dae-1979310e6154"
-version = "0.2.7"
+version = "0.2.8"
 
 [[deps.DataAPI]]
 git-tree-sha1 = "fb5f5316dd3fd4c5e7c30a24d50643b73e37cd40"
@@ -402,9 +874,9 @@ version = "1.10.0"
 
 [[deps.DataPipes]]
 deps = ["Accessors", "SplitApplyCombine"]
-git-tree-sha1 = "16df65e133f714831c9a6fe1aa62dd1cd1d728ba"
+git-tree-sha1 = "ab6b5bf476e9111b0166cc3f8373638204d7fafd"
 uuid = "02685ad9-2d12-40c3-9f73-c6aeda6a7ff5"
-version = "0.2.16"
+version = "0.2.17"
 
 [[deps.DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
@@ -417,12 +889,6 @@ git-tree-sha1 = "bfc1187b79289637fa0ef6d4436ebdfe6905cbd6"
 uuid = "e2d170a0-9d28-54be-80f0-106bbe20a464"
 version = "1.0.0"
 
-[[deps.DateFormats]]
-deps = ["Dates", "DocStringExtensions", "InverseFunctions"]
-git-tree-sha1 = "5385eb5aa41b70000d76a302f94da491caa00ae9"
-uuid = "44557152-fe0a-4de1-8405-416d90313ce6"
-version = "0.1.14"
-
 [[deps.Dates]]
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -432,10 +898,10 @@ deps = ["Mmap"]
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 
 [[deps.Dictionaries]]
-deps = ["Indexing", "Random"]
-git-tree-sha1 = "36bc84c68847edd2a3f97f32839fa484d1e1bce7"
+deps = ["Indexing", "Random", "Serialization"]
+git-tree-sha1 = "96dc5c5c8994be519ee3420953c931c55657a3f2"
 uuid = "85a47980-9c8c-11e8-2b9f-f7ca1fa99fb4"
-version = "0.3.22"
+version = "0.3.24"
 
 [[deps.DimensionalData]]
 deps = ["Adapt", "ArrayInterface", "ConstructionBase", "Dates", "Extents", "IntervalSets", "LinearAlgebra", "Random", "RecipesBase", "SparseArrays", "Statistics", "Tables"]
@@ -444,10 +910,10 @@ uuid = "0703355e-b756-11e9-17c0-8b28908087d0"
 version = "0.20.11"
 
 [[deps.DirectionalStatistics]]
-deps = ["Accessors", "IntervalSets", "InverseFunctions", "LinearAlgebra", "Statistics", "StatsBase"]
-git-tree-sha1 = "665745b1ab0afcaaaf41a13f3170b6c8d5336232"
+deps = ["AccessorsExtra", "IntervalSets", "InverseFunctions", "LinearAlgebra", "Statistics", "StatsBase"]
+git-tree-sha1 = "156365de4369a6cf587d0d59ce52fe688f2b5f92"
 uuid = "e814f24e-44b0-11e9-2fd5-aba2b6113d95"
-version = "0.1.16"
+version = "0.1.19"
 
 [[deps.DisplayAs]]
 git-tree-sha1 = "43c017d5dd3a48d56486055973f443f8a39bb6d9"
@@ -465,10 +931,10 @@ uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
 version = "0.9.1"
 
 [[deps.DomainSets]]
-deps = ["CompositeTypes", "IntervalSets", "LinearAlgebra", "StaticArrays", "Statistics"]
-git-tree-sha1 = "ac425eea956013b51e7891bef3c33684b7d37029"
+deps = ["CompositeTypes", "IntervalSets", "LinearAlgebra", "Random", "StaticArrays", "Statistics"]
+git-tree-sha1 = "dc45fbbe91d6d17a8e187abad39fb45963d97388"
 uuid = "5b8099bc-c8ec-5219-889f-1d9e522a28bf"
-version = "0.5.11"
+version = "0.5.13"
 
 [[deps.Downloads]]
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
@@ -551,27 +1017,33 @@ version = "1.0.10+0"
 
 [[deps.GLFW_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libglvnd_jll", "Pkg", "Xorg_libXcursor_jll", "Xorg_libXi_jll", "Xorg_libXinerama_jll", "Xorg_libXrandr_jll"]
-git-tree-sha1 = "51d2dfe8e590fbd74e7a842cf6d13d8a2f45dc01"
+git-tree-sha1 = "d972031d28c8c8d9d7b41a536ad7bb0c2579caca"
 uuid = "0656b61e-2033-5cc2-a64a-77c0f6c09b89"
-version = "3.3.6+0"
+version = "3.3.8+0"
 
 [[deps.GR]]
 deps = ["Base64", "DelimitedFiles", "GR_jll", "HTTP", "JSON", "Libdl", "LinearAlgebra", "Pkg", "Printf", "Random", "RelocatableFolders", "Serialization", "Sockets", "Test", "UUIDs"]
-git-tree-sha1 = "037a1ca47e8a5989cc07d19729567bb71bfabd0c"
+git-tree-sha1 = "cf0a9940f250dc3cb6cc6c6821b4bf8a4286cf9c"
 uuid = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
-version = "0.66.0"
+version = "0.66.2"
 
 [[deps.GR_jll]]
 deps = ["Artifacts", "Bzip2_jll", "Cairo_jll", "FFMPEG_jll", "Fontconfig_jll", "GLFW_jll", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Libtiff_jll", "Pixman_jll", "Pkg", "Qt5Base_jll", "Zlib_jll", "libpng_jll"]
-git-tree-sha1 = "c8ab731c9127cd931c93221f65d6a1008dad7256"
+git-tree-sha1 = "2d908286d120c584abbe7621756c341707096ba4"
 uuid = "d2c73de3-f751-5644-a686-071e5b155ba9"
-version = "0.66.0+0"
+version = "0.66.2+0"
+
+[[deps.GeoInterface]]
+deps = ["Extents"]
+git-tree-sha1 = "fb28b5dc239d0174d7297310ef7b84a11804dfab"
+uuid = "cf35fbd7-0cd7-5166-be24-54bfbe79505f"
+version = "1.0.1"
 
 [[deps.GeometryBasics]]
-deps = ["EarCut_jll", "IterTools", "LinearAlgebra", "StaticArrays", "StructArrays", "Tables"]
-git-tree-sha1 = "83ea630384a13fc4f002b77690bc0afeb4255ac9"
+deps = ["EarCut_jll", "GeoInterface", "IterTools", "LinearAlgebra", "StaticArrays", "StructArrays", "Tables"]
+git-tree-sha1 = "a7a97895780dab1085a97769316aa348830dc991"
 uuid = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
-version = "0.4.2"
+version = "0.4.3"
 
 [[deps.Gettext_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Libiconv_jll", "Pkg", "XML2_jll"]
@@ -604,9 +1076,9 @@ version = "1.0.2"
 
 [[deps.HTTP]]
 deps = ["Base64", "CodecZlib", "Dates", "IniFile", "Logging", "LoggingExtras", "MbedTLS", "NetworkOptions", "Random", "SimpleBufferStream", "Sockets", "URIs", "UUIDs"]
-git-tree-sha1 = "ed47af35905b7cc8f1a522ca684b35a212269bd8"
+git-tree-sha1 = "59ba44e0aa49b87a8c7a8920ec76f8afe87ed502"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "1.2.0"
+version = "1.3.3"
 
 [[deps.HarfBuzz_jll]]
 deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "Graphite2_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg"]
@@ -619,6 +1091,24 @@ deps = ["CFITSIO", "LazyArtifacts", "Libsharp", "LinearAlgebra", "Pkg", "Printf"
 git-tree-sha1 = "e4583be5e3fc6436d3eb00f163c799cb46712aa6"
 uuid = "9f4e344d-96bc-545a-84a3-ae6b9e1b672b"
 version = "4.0.1"
+
+[[deps.Hyperscript]]
+deps = ["Test"]
+git-tree-sha1 = "8d511d5b81240fc8e6802386302675bdf47737b9"
+uuid = "47d2ed2b-36de-50cf-bf87-49c2cf4b8b91"
+version = "0.0.4"
+
+[[deps.HypertextLiteral]]
+deps = ["Tricks"]
+git-tree-sha1 = "c47c5fa4c5308f27ccaac35504858d8914e102f9"
+uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
+version = "0.9.4"
+
+[[deps.IOCapture]]
+deps = ["Logging", "Random"]
+git-tree-sha1 = "f7be53659ab06ddc986428d3a9dcc95f6fa6705a"
+uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
+version = "0.2.2"
 
 [[deps.IfElse]]
 git-tree-sha1 = "debdd00ffef04665ccbb3e150747a77560e8fad1"
@@ -672,9 +1162,9 @@ uuid = "9b13fd28-a010-5f03-acff-a1bbcff69959"
 version = "1.0.0"
 
 [[deps.Inflate]]
-git-tree-sha1 = "f5fc07d4e706b84f72d54eedcc1c13d92fb0871c"
+git-tree-sha1 = "5cd07aab533df5170988219191dfad0519391428"
 uuid = "d25df0c9-e2be-5dd7-82c8-3ad0b3e990b9"
-version = "0.1.2"
+version = "0.1.3"
 
 [[deps.IniFile]]
 git-tree-sha1 = "f550e6e32074c939295eb5ea6de31849ac2c9625"
@@ -685,17 +1175,17 @@ version = "0.5.1"
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 
-[[deps.InterferometricModels]]
-deps = ["Accessors", "IntervalSets", "LinearAlgebra", "StaticArrays", "Unitful", "UnitfulAstro"]
-git-tree-sha1 = "7594d795d0404c7485fa4a9a1173facabfbad3fa"
-uuid = "b395d269-c2ec-4df6-b679-36919ad600ca"
-version = "0.1.7"
+[[deps.Interpolations]]
+deps = ["Adapt", "AxisAlgorithms", "ChainRulesCore", "LinearAlgebra", "OffsetArrays", "Random", "Ratios", "Requires", "SharedArrays", "SparseArrays", "StaticArrays", "WoodburyMatrices"]
+git-tree-sha1 = "64f138f9453a018c8f3562e7bae54edc059af249"
+uuid = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
+version = "0.14.4"
 
 [[deps.IntervalSets]]
 deps = ["Dates", "Random", "Statistics"]
-git-tree-sha1 = "57af5939800bce15980bddd2426912c4f83012d8"
+git-tree-sha1 = "076bb0da51a8c8d1229936a1af7bdfacd65037e1"
 uuid = "8197267c-284f-5f27-9208-e0e47529a953"
-version = "0.7.1"
+version = "0.7.2"
 
 [[deps.InverseFunctions]]
 deps = ["Test"]
@@ -792,10 +1282,10 @@ uuid = "8cdb02fc-e678-4876-92c5-9defec4f444e"
 version = "0.3.1"
 
 [[deps.LazyStack]]
-deps = ["LinearAlgebra", "NamedDims", "OffsetArrays", "Test", "ZygoteRules"]
-git-tree-sha1 = "a8bf67afad3f1ee59d367267adb7c44ccac7fdee"
+deps = ["ChainRulesCore", "LinearAlgebra", "NamedDims", "OffsetArrays"]
+git-tree-sha1 = "2eb4a5bf2eb0519ebf40c797ba5637d327863637"
 uuid = "1fad7336-0346-5a1a-a56f-a06ba010965b"
-version = "0.0.7"
+version = "0.0.8"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
@@ -805,7 +1295,7 @@ version = "0.6.3"
 [[deps.LibCURL_jll]]
 deps = ["Artifacts", "LibSSH2_jll", "Libdl", "MbedTLS_jll", "Zlib_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
-version = "7.83.1+1"
+version = "7.84.0+0"
 
 [[deps.LibGit2]]
 deps = ["Base64", "NetworkOptions", "Printf", "SHA"]
@@ -879,9 +1369,9 @@ uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[deps.LogExpFunctions]]
 deps = ["ChainRulesCore", "ChangesOfVariables", "DocStringExtensions", "InverseFunctions", "IrrationalConstants", "LinearAlgebra"]
-git-tree-sha1 = "361c2b088575b07946508f135ac556751240091c"
+git-tree-sha1 = "94d9c52ca447e23eac0c0f074effbcd38830deb5"
 uuid = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
-version = "0.3.17"
+version = "0.3.18"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
@@ -915,9 +1405,9 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
 [[deps.MbedTLS]]
 deps = ["Dates", "MbedTLS_jll", "MozillaCACerts_jll", "Random", "Sockets"]
-git-tree-sha1 = "14cb991ee7ccc6dabda93d310400575c3cae435b"
+git-tree-sha1 = "2f0be365951a88dfb084f754005177e6dfb00ed0"
 uuid = "739be429-bea8-5141-9913-cc70e7f3736d"
-version = "1.1.2"
+version = "1.1.4"
 
 [[deps.MbedTLS_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -956,9 +1446,9 @@ version = "1.0.1"
 
 [[deps.NamedDims]]
 deps = ["AbstractFFTs", "ChainRulesCore", "CovarianceEstimation", "LinearAlgebra", "Pkg", "Requires", "Statistics"]
-git-tree-sha1 = "467b53bf3c1f5f0612e0bc430b7afedc64652822"
+git-tree-sha1 = "f39537cbe1cf4f407e65bdf7aca6b04f5877fbb1"
 uuid = "356022a1-0364-5f58-8944-0da4b18d706f"
-version = "0.2.49"
+version = "1.1.0"
 
 [[deps.Netpbm]]
 deps = ["FileIO", "ImageCore"]
@@ -1070,9 +1560,9 @@ version = "1.8.0"
 
 [[deps.PkgVersion]]
 deps = ["Pkg"]
-git-tree-sha1 = "a7a7e1a88853564e551e4eba8650f8c38df79b37"
+git-tree-sha1 = "f6cf8e7944e50901594838951729a1861e668cb8"
 uuid = "eebad327-c553-4316-9ea0-9fa01ccd7688"
-version = "0.1.1"
+version = "0.3.2"
 
 [[deps.PlotThemes]]
 deps = ["PlotUtils", "Statistics"]
@@ -1088,9 +1578,15 @@ version = "1.3.0"
 
 [[deps.Plots]]
 deps = ["Base64", "Contour", "Dates", "Downloads", "FFMPEG", "FixedPointNumbers", "GR", "GeometryBasics", "JSON", "LaTeXStrings", "Latexify", "LinearAlgebra", "Measures", "NaNMath", "Pkg", "PlotThemes", "PlotUtils", "Printf", "REPL", "Random", "RecipesBase", "RecipesPipeline", "Reexport", "Requires", "Scratch", "Showoff", "SparseArrays", "Statistics", "StatsBase", "UUIDs", "UnicodeFun", "Unzip"]
-git-tree-sha1 = "05873db92e703f134649d88b8a164f3b7acb4d73"
+git-tree-sha1 = "a19652399f43938413340b2068e11e55caa46b65"
 uuid = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
-version = "1.31.5"
+version = "1.31.7"
+
+[[deps.PlutoUI]]
+deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "Markdown", "Random", "Reexport", "UUIDs"]
+git-tree-sha1 = "8d1f54886b9037091edf146b517989fc4a09efec"
+uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+version = "0.7.39"
 
 [[deps.Preferences]]
 deps = ["TOML"]
@@ -1110,9 +1606,9 @@ version = "1.7.2"
 
 [[deps.PyCall]]
 deps = ["Conda", "Dates", "Libdl", "LinearAlgebra", "MacroTools", "Serialization", "VersionParsing"]
-git-tree-sha1 = "1fc929f47d7c151c839c5fc1375929766fb8edcc"
+git-tree-sha1 = "53b8b07b721b77144a0fbbbc2675222ebf40a02d"
 uuid = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
-version = "1.93.1"
+version = "1.94.1"
 
 [[deps.PyFormattedStrings]]
 deps = ["Printf"]
@@ -1122,15 +1618,15 @@ version = "0.1.10"
 
 [[deps.PyPlot]]
 deps = ["Colors", "LaTeXStrings", "PyCall", "Sockets", "Test", "VersionParsing"]
-git-tree-sha1 = "14c1b795b9d764e1784713941e787e1384268103"
+git-tree-sha1 = "f9d953684d4d21e947cb6d642db18853d43cb027"
 uuid = "d330b81b-6aea-500a-939a-2ce795aea3ee"
-version = "2.10.0"
+version = "2.11.0"
 
 [[deps.PyPlotUtils]]
 deps = ["Accessors", "AxisKeys", "Colors", "DataPipes", "DirectionalStatistics", "DomainSets", "IntervalSets", "LinearAlgebra", "NonNegLeastSquares", "PyCall", "PyPlot", "StatsBase", "Unitful"]
-git-tree-sha1 = "bc8d5792593d75b06584acbee172f88f1390331b"
+git-tree-sha1 = "37b811018ec1ebde8e4698c118b72f90ed2ec275"
 uuid = "5384e752-6c47-47b3-86ac-9d091b110b31"
-version = "0.1.13"
+version = "0.1.17"
 
 [[deps.QOI]]
 deps = ["ColorTypes", "FileIO", "FixedPointNumbers"]
@@ -1157,6 +1653,12 @@ git-tree-sha1 = "b9039e93773ddcfc828f12aadf7115b4b4d225f5"
 uuid = "b3c3ace0-ae52-54e7-9d0b-2c1406fd6b9d"
 version = "0.3.2"
 
+[[deps.Ratios]]
+deps = ["Requires"]
+git-tree-sha1 = "dc84268fe0e3335a62e315a3a7cf2afa7178a734"
+uuid = "c84ed2f1-dad5-54f0-aa8e-dbefe2724439"
+version = "0.4.3"
+
 [[deps.RecipesBase]]
 git-tree-sha1 = "6bf3f380ff52ce0832ddd3a2a7b9538ed1bcca7d"
 uuid = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
@@ -1169,10 +1671,10 @@ uuid = "01d81517-befc-4cb6-b9ec-a95719d0359c"
 version = "0.6.3"
 
 [[deps.RectiGrids]]
-deps = ["AxisKeys", "Random"]
-git-tree-sha1 = "b8df108363306bbd2317477851f4106cfbe0278c"
+deps = ["AxisKeys", "ConstructionBase", "Random", "StaticArraysCore"]
+git-tree-sha1 = "940a23a7472b7352ff0ebbb661da8bbb5d7f932f"
 uuid = "8ac6971d-971d-971d-971d-971d5ab1a71a"
-version = "0.1.9"
+version = "0.1.13"
 
 [[deps.Reexport]]
 git-tree-sha1 = "45e428421666073eab6f2da5c9d310d99bb12f9b"
@@ -1210,6 +1712,10 @@ version = "1.1.1"
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 
+[[deps.SharedArrays]]
+deps = ["Distributed", "Mmap", "Random", "Serialization"]
+uuid = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
+
 [[deps.Showoff]]
 deps = ["Dates", "Grisu"]
 git-tree-sha1 = "91eddf657aca81df9ae6ceb20b959ae5653ad1de"
@@ -1233,6 +1739,11 @@ git-tree-sha1 = "8fb59825be681d451c246a795117f317ecbcaa28"
 uuid = "45858cf5-a6b0-47a3-bbea-62219f50df47"
 version = "0.1.2"
 
+[[deps.SkipNan]]
+git-tree-sha1 = "b07be17ad1c4dd3e2d11aff5aa06157838ee6a6a"
+uuid = "aed68c70-c8b0-4309-8cd1-d392a74f991a"
+version = "0.2.0"
+
 [[deps.SkyCoords]]
 deps = ["AstroAngles", "ConstructionBase", "StaticArrays"]
 git-tree-sha1 = "3302abfbde42db0c029e86d6155775b474a536d3"
@@ -1240,10 +1751,10 @@ uuid = "fc659fc5-75a3-5475-a2ea-3da92c065361"
 version = "1.0.1"
 
 [[deps.SkyImages]]
-deps = ["AccessorsExtra", "AxisKeys", "FITSIO", "Healpix", "RectiGrids", "SkyCoords", "WCS"]
+deps = ["AccessorsExtra", "AxisKeys", "ConstructionBase", "DataPipes", "DirectionalStatistics", "FITSIO", "Healpix", "Interpolations", "IntervalSets", "RectiGrids", "SkyCoords", "WCS"]
 path = "../../home/aplavin/.julia/dev/SkyImages"
 uuid = "2d546a2e-713c-402d-bee5-ba90cc43b84b"
-version = "0.1.0"
+version = "0.1.3"
 
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
@@ -1284,14 +1795,14 @@ version = "0.7.6"
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "Random", "StaticArraysCore", "Statistics"]
-git-tree-sha1 = "23368a3313d12a2326ad0035f0db0c0966f438ef"
+git-tree-sha1 = "dfec37b90740e3b9aa5dc2613892a3fc155c3b42"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.5.2"
+version = "1.5.6"
 
 [[deps.StaticArraysCore]]
-git-tree-sha1 = "66fe9eb253f910fe8cf161953880cfdaef01cdf0"
+git-tree-sha1 = "ec2bd695e905a3c755b33026954b119ea17f2d22"
 uuid = "1e83bf80-4336-4d27-bf5d-d5a4f845583c"
-version = "1.0.1"
+version = "1.3.0"
 
 [[deps.Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
@@ -1299,21 +1810,21 @@ uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [[deps.StatsAPI]]
 deps = ["LinearAlgebra"]
-git-tree-sha1 = "2c11d7290036fe7aac9038ff312d3b3a2a5bf89e"
+git-tree-sha1 = "f9af7f195fb13589dd2e2d57fdb401717d2eb1f6"
 uuid = "82ae8749-77ed-4fe6-ae5f-f523153014b0"
-version = "1.4.0"
+version = "1.5.0"
 
 [[deps.StatsBase]]
 deps = ["DataAPI", "DataStructures", "LinearAlgebra", "LogExpFunctions", "Missings", "Printf", "Random", "SortingAlgorithms", "SparseArrays", "Statistics", "StatsAPI"]
-git-tree-sha1 = "0005d75f43ff23688914536c5e9d5ac94f8077f7"
+git-tree-sha1 = "d1bf48bfcc554a3761a133fe3a9bb01488e06916"
 uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
-version = "0.33.20"
+version = "0.33.21"
 
 [[deps.StructArrays]]
-deps = ["Adapt", "DataAPI", "StaticArrays", "Tables"]
-git-tree-sha1 = "ec47fb6069c57f1cee2f67541bf8f23415146de7"
+deps = ["Adapt", "DataAPI", "StaticArraysCore", "Tables"]
+git-tree-sha1 = "8c6ac65ec9ab781af05b08ff305ddc727c25f680"
 uuid = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
-version = "0.6.11"
+version = "0.6.12"
 
 [[deps.SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
@@ -1353,15 +1864,20 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[deps.TiffImages]]
 deps = ["ColorTypes", "DataStructures", "DocStringExtensions", "FileIO", "FixedPointNumbers", "IndirectArrays", "Inflate", "Mmap", "OffsetArrays", "PkgVersion", "ProgressMeter", "UUIDs"]
-git-tree-sha1 = "fcf41697256f2b759de9380a7e8196d6516f0310"
+git-tree-sha1 = "70e6d2da9210371c927176cb7a56d41ef1260db7"
 uuid = "731e570b-9d59-4bfa-96dc-6df516fadf69"
-version = "0.6.0"
+version = "0.6.1"
 
 [[deps.TranscodingStreams]]
 deps = ["Random", "Test"]
-git-tree-sha1 = "216b95ea110b5972db65aa90f88d8d89dcb8851c"
+git-tree-sha1 = "ed5d390c7addb70e90fd1eb783dcb9897922cbfa"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
-version = "0.9.6"
+version = "0.9.8"
+
+[[deps.Tricks]]
+git-tree-sha1 = "6bac775f2d42a611cdfcd1fb217ee719630c4175"
+uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
+version = "0.1.6"
 
 [[deps.URIs]]
 git-tree-sha1 = "e59ecc5a41b000fa94423a578d29290c7266fc10"
@@ -1393,22 +1909,10 @@ git-tree-sha1 = "d6cfdb6ddeb388af1aea38d2b9905fa014d92d98"
 uuid = "6fb2a4bd-7999-5318-a3b2-8ad61056cd98"
 version = "0.6.2"
 
-[[deps.UnitfulAstro]]
-deps = ["Unitful", "UnitfulAngles"]
-git-tree-sha1 = "c4e1c470a94063b911fd1b1a204cd2bb34a8cd15"
-uuid = "6112ee07-acf9-5e0f-b108-d242c714bf9f"
-version = "1.1.1"
-
 [[deps.Unzip]]
 git-tree-sha1 = "34db80951901073501137bdbc3d5a8e7bbd06670"
 uuid = "41fe7b60-77ed-43a1-b4f0-825fd5a5650d"
 version = "0.1.2"
-
-[[deps.VLBIData]]
-deps = ["AxisKeys", "DataPipes", "DateFormats", "Dates", "DelimitedFiles", "FITSIO", "InterferometricModels", "PyCall", "PyFormattedStrings", "Reexport", "StaticArrays", "StructArrays", "Tables", "Unitful", "UnitfulAngles", "UnitfulAstro"]
-git-tree-sha1 = "7b1ceba291099cdc9cbe9662112bb2a08303ee89"
-uuid = "679fc9cc-3e84-11e9-251b-cbd013bd8115"
-version = "0.3.10"
 
 [[deps.VersionParsing]]
 git-tree-sha1 = "58d6e80b4ee071f5efd07fda82cb9fbe17200868"
@@ -1438,6 +1942,12 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "4528479aa01ee1b3b4cd0e6faef0e04cf16466da"
 uuid = "2381bf8a-dfd0-557d-9999-79630e7b1b91"
 version = "1.25.0+0"
+
+[[deps.WoodburyMatrices]]
+deps = ["LinearAlgebra", "SparseArrays"]
+git-tree-sha1 = "de67fa59e33ad156a590055375a30b23c40299d3"
+uuid = "efce3f68-66dc-5838-9240-27a6d6f5f9b6"
+version = "0.5.5"
 
 [[deps.XML2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Pkg", "Zlib_jll"]
@@ -1588,12 +2098,6 @@ git-tree-sha1 = "e45044cd873ded54b6a5bac0eb5c971392cf1927"
 uuid = "3161d3a3-bdf6-5164-811a-617609db77b4"
 version = "1.5.2+0"
 
-[[deps.ZygoteRules]]
-deps = ["MacroTools"]
-git-tree-sha1 = "8c1a8e4dfacb1fd631745552c8db35d0deb09ea0"
-uuid = "700de1a5-db45-46bc-99cf-38207098b444"
-version = "0.2.2"
-
 [[deps.libaom_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "3a2ea60308f0996d26f1e5354e10c24e9ef905d4"
@@ -1644,7 +2148,7 @@ version = "1.3.7+1"
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
-version = "1.47.0+0"
+version = "1.48.0+0"
 
 [[deps.p7zip_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -1665,41 +2169,115 @@ version = "3.5.0+0"
 
 [[deps.xkbcommon_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Wayland_jll", "Wayland_protocols_jll", "Xorg_libxcb_jll", "Xorg_xkeyboard_config_jll"]
-git-tree-sha1 = "ece2350174195bb31de1a63bea3a41ae1aa593b6"
+git-tree-sha1 = "9ebfc140cc56e8c2156a15ceac2f0302e327ac0a"
 uuid = "d8fb68d0-12a3-5cfd-a85a-d49703b185fd"
-version = "0.9.1+5"
+version = "1.4.1+0"
 """
 
 # ╔═╡ Cell order:
+# ╟─d27f13ff-72de-4136-b145-d8a973f23047
+# ╟─a0a180c0-15c5-408d-82a2-3e8d5f1ff484
+# ╟─aa6da229-640c-4eae-a0fe-9bd2742fa849
+# ╟─b02f575f-bbd5-42c0-aab3-37415b66bd76
+# ╟─72a56fff-84ab-4fdb-882f-e0ee6efada45
+# ╟─41f3ff07-8ebe-4224-ad1b-9342ee4e7e07
+# ╠═7de9fc6e-f652-48bc-babe-af0e56a8c427
+# ╟─b2649127-99b3-4ee4-aa54-d11f46f2c04e
+# ╟─f26a1360-ba03-4df3-8ba0-ffd707a34bfb
+# ╠═e42ac814-ca50-4464-8a19-59695b1f9ef0
+# ╟─ec6d0165-18e5-41f6-91e0-382840cde0f0
+# ╠═b0c2a790-231a-4ebc-a755-627cca858325
+# ╟─170f4c04-0961-44d5-876e-9e9f51834e32
+# ╠═4285e435-549e-487f-9013-95f8d2958cbe
+# ╟─de270142-3c0c-45b9-968f-0ef68c5074b0
+# ╠═62fd3d3c-d8a6-48e4-8d03-c27d2ef581f0
+# ╟─6ed9fc21-08b6-4f39-b9c3-29abbcd3cee1
+# ╠═17671ee5-bda8-4ffd-b1ef-dbb98eb7339a
+# ╠═16bc419e-1c2a-4617-ba06-fcaa943066ca
+# ╟─6cb2f138-5bba-406a-a505-4c60645d1dcb
+# ╟─e052b45d-ef9e-41de-aeee-c0fce166f4f6
+# ╠═6c7b4e2d-7f67-428a-8d22-c2bfb0a96a42
+# ╟─a6d02948-0e29-4fa6-a2b6-a8f7d605fb97
+# ╟─9905274c-40b2-4f8c-bf87-9f0f939699bf
+# ╟─83946094-3f59-4d98-92cc-b79558f6a504
+# ╠═7ac37418-514a-4b41-beae-2bec303c9737
+# ╟─8efcbb46-9685-479f-96b9-816aacd2a851
+# ╠═59c20159-4614-47d0-98ab-bf6f4991caed
+# ╟─e16e262d-8366-41cc-ba5c-085188dbe3c7
+# ╠═e9b9da8e-80c3-47dc-b1e4-db6d490e7d12
+# ╟─d177d489-072c-4dcd-a72f-0eeab7fedc2a
+# ╟─3b5fbd3c-cfff-4f21-9736-589e9c01e656
+# ╟─a5ed3228-f068-4784-9d7a-61530cbd40e6
+# ╠═18d26c89-e953-46bf-9a96-512d55c75a7d
+# ╟─0c7b5add-fc89-4633-8c1b-9f472cb5707e
+# ╠═8f6a723c-bc5c-46e9-aaeb-af13a25ba4d8
+# ╟─5ab12071-3a83-452c-b85e-7b475b5a86e2
+# ╠═dfb02cfb-5451-44da-bb74-716aa0fb9cb8
+# ╟─cb61bd15-0c0c-43f8-abc5-4585b7544c16
+# ╟─385d8b97-acb4-4cc0-b258-a4237bbf296e
+# ╠═50c0fd27-9f9d-4fd5-a053-8a9cbdc06f81
+# ╟─c7a78987-6c06-41e9-bcc3-067468efe961
+# ╠═d0de65a3-82e1-44f7-be84-5c09511adbda
+# ╟─e2e336f8-26da-456f-8feb-546086b97861
+# ╟─7180a98a-1639-4647-a973-5cb4a654776c
+# ╟─7b1bc5cd-15a2-4b6e-bc23-983201ea6f88
+# ╠═8b2bc998-e4d6-42eb-88b7-abec6d3c5b1b
+# ╟─f4c9635b-86b9-4ea7-8433-6d42f347695f
+# ╠═918e65d6-2e7f-4db5-9937-ebcd719b42ff
+# ╟─e7952445-dbfc-4e06-a00e-d23038f6435b
+# ╟─6555eb04-d630-4d03-800b-5d023c8e0522
+# ╟─2baea1f0-2a27-4aca-991b-6f3e7bb13c64
+# ╟─5e631aff-d7a4-487c-b21a-03c47be08d8e
+# ╠═e98ccebd-b7fd-4de3-8e16-4056512ed1a9
+# ╟─a97f89d2-b8fc-4b7b-b0ab-c4170017db27
+# ╟─42be67e7-bc56-49d4-a391-fededc1bd1b6
+# ╠═999c382b-5de9-4324-bea4-f6ddb1f37735
+# ╟─c03ddad8-d708-4d4f-8e08-ae7ce5a05bb9
+# ╟─3d868917-38a8-41cf-acb5-d5a1a2615448
+# ╟─487f817d-d67f-4152-bae6-7ec593f253fe
+# ╠═37bd1aba-72ba-4b42-b8aa-789318691328
+# ╠═594c91e1-565a-49ad-9b77-20aabe7e71f4
+# ╠═09a7db9c-0afb-41a1-a66b-924469ea003c
+# ╠═95b0e957-1deb-4176-b819-9d716a09e5b1
+# ╠═1c4de053-f8d5-4363-8224-af5a71594978
+# ╠═2bd8cb76-4c90-48f6-80d5-6c790045f314
+# ╟─a9cba3ab-275a-4250-a207-88506d796945
+# ╟─16ac4fe7-009b-4be5-8ce0-1c59385bec0a
+# ╟─4d7e1f0f-327a-4316-8595-22d149a13939
+# ╠═cb93aba9-0fd6-4716-b9a4-dde69c365570
+# ╟─0fe458e1-c021-4115-a941-8a1eeb67f63b
+# ╠═167eec1b-7f36-4ff0-9333-b086a09fb6b2
+# ╟─ec6d6033-0fd9-4b03-a82d-16f4258dd60b
+# ╠═8dcbf3c5-0de4-4235-8330-45886c562535
+# ╟─cc5439ff-17b7-4a8f-98fb-3bf82bc1544f
+# ╟─c0ef8625-3d6a-457b-a07c-cc03ecb31a5d
+# ╠═0962b3ae-4183-4e5c-8e5d-1c0817e548b7
+# ╠═9fbb2cba-005c-4770-97d9-6a4e279cb2a7
+# ╠═e28ee6fb-dbab-4884-867f-c60e9bf55e65
+# ╠═ed5d3e9d-5b11-4c9e-b701-c02ece625d01
+# ╠═2e9afe63-0048-4e91-b9b3-778957d3df00
+# ╠═6be80fa0-ef2d-452b-a278-8f04abbc4f9c
+# ╠═31f5c00d-2be8-4843-98e0-1bab85ac2f57
+# ╠═8dd355b7-114a-4627-81a0-fc33d79e2a6d
+# ╠═9f308f8a-3033-429a-bde6-36cb9f1ab1b0
+# ╠═02078d2d-c545-4b3f-8b4c-9dff5788aaae
+# ╠═5eb368bf-6fc3-484e-9b40-403773f6f4ab
+# ╠═e18f9920-6879-49a0-abe1-94a105734dd5
+# ╠═4ae186bb-e7c7-4aab-9c70-04a149e46e7f
+# ╠═c758da66-0444-4e4d-aac8-e62dfa93dfbf
+# ╠═8e437f0f-20fd-40b7-bfac-e660d8dfa7b8
+# ╠═1265dd87-7395-4637-8b07-8dd5df20e43b
 # ╠═e3c72be9-8488-4c01-843c-16553057a0b5
-# ╠═b406ba5e-5191-4a5b-a044-5565016983d2
 # ╠═bae108cc-f9d5-4667-aa51-6fc3481b02c5
 # ╠═f27b825e-b90f-4b8b-a04c-bc7df379383c
 # ╠═eb8eff01-cdaf-4536-8bd9-b6b99665a5ac
 # ╠═c1f7876c-9262-445f-b199-6d7f46434294
 # ╠═36ccd512-b91d-47a7-a86d-a0baeb7faf32
-# ╠═d27f13ff-72de-4136-b145-d8a973f23047
-# ╠═cbc9aebe-1120-11ed-3aaa-93fd28c64248
-# ╠═56a540b3-9aa4-42db-b24b-ef0c6dfb14aa
-# ╠═414098c1-e025-4dd3-bd99-61a571d70a63
-# ╠═7c650877-10f4-4c52-8bb5-4354ce0d705f
-# ╠═5704ec39-bdda-4361-934a-ef98b6a91289
-# ╠═884f8a8c-8cbc-4f60-b9a1-98857dab1b2a
-# ╠═238cd3ee-f302-42c4-9a03-ef781fb78ea3
-# ╠═82d9dbdb-ff18-4838-9ab5-f189cb5c8fa7
-# ╠═b2226507-77c6-4fc7-8511-1acc23ff3953
-# ╠═a8a8f8d2-7950-45df-ad94-c75bda105a07
-# ╠═3a9071de-38a6-4134-9d82-f5a8a1faae28
-# ╠═c3572ffe-e9ba-47a6-b721-ce12ed578964
-# ╠═821b8086-fa80-4694-a4a9-e299b4a446cb
-# ╠═8c5331b1-affd-4048-87f7-e377a0e9f817
-# ╠═fa9bf714-48fc-4dce-8dbe-2b8149187475
-# ╠═c758da66-0444-4e4d-aac8-e62dfa93dfbf
-# ╠═5adf83a8-723d-4017-afb4-e0ce2340db04
-# ╠═9e8f321b-e078-4e86-bca6-7f29ae433792
-# ╠═c1f637a6-7ef8-49c9-a741-a38c57326ec0
-# ╠═8e437f0f-20fd-40b7-bfac-e660d8dfa7b8
-# ╠═1265dd87-7395-4637-8b07-8dd5df20e43b
-# ╠═ea73374b-8da2-40a5-be0d-49c5aafa51d0
+# ╠═9d343fd3-0258-41e4-9e06-938282491ecf
+# ╠═8dc78491-a634-4290-9ecc-c13e9be46c2e
+# ╠═f7bb31e5-9a69-4a9d-bd62-02c3b7d0d332
+# ╠═1c17fd5e-f047-4bd4-8b00-56fa077c7bb0
+# ╠═5ebbcfb6-f534-490f-947f-b7c039156908
+# ╠═9515317f-3fdb-4b8c-8686-3d0b1a42ffe3
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
