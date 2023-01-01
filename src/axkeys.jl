@@ -29,9 +29,12 @@ function AxisKeys.findindex(sels::AbstractArray{<:Near{<:AbstractSkyCoords}}, w:
         valc = convert(coordstype(w), sel.val)
         world = (SkyCoords.lon(valc) |> rad2deg, SkyCoords.lat(valc) |> rad2deg, ntuple(Returns(1.0), NW - 2)...)
     end
-    pixs_full = WCS.world_to_pix(w.wcs, collect(reinterpret(reshape, Float64, worlds)))
-    # reinterpret(reshape, NTuple{NW, Float64}, __)
-    pixs = reinterpret(reshape, NTuple{NS,Float64}, @view pixs_full[1:NS, :])
+
+    # world_to_pix: pass flat vector of world coords (as 2d matrix), get flat vector of pix coords
+    pixs_vec_full = WCS.world_to_pix(w.wcs, collect(reinterpret(reshape, Float64, vec(worlds))))
+    pixs_vec = reinterpret(reshape, NTuple{NS,Float64}, @view pixs_full[1:NS, :])
+
+    pixs = @set vec(AxisKeys.keyless_unname(sels)) = pixs_vec
     map(pixs) do pix
         pix_i = clamp.(round.(Int, pix), (:).(1, w.size))
         LinearIndices(w.size)[CartesianIndex(pix_i)]
