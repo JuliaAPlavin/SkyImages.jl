@@ -30,15 +30,6 @@ function Base.getindex(akx::WCSAxkeys{NS,NW}, ix::Int) where {NS,NW}
     coordstype(akx)(wrad...)
 end
 
-function AxisKeys.findindex(sel::Near{<:AbstractSkyCoords}, akx::WCSAxkeys{NS,NW}) where {NS,NW}
-    valc = convert(coordstype(akx), sel.val)
-    world = (SkyCoords.lon(valc) |> rad2deg, SkyCoords.lat(valc) |> rad2deg, ntuple(Returns(1), NW - 2)...)
-    pix_full = WCS.world_to_pix(akx.wcs, collect(Float64, world))
-    pix = NTuple{NS}(@view pix_full[1:NS])
-    pix_i = clamp.(round.(Int, pix), (:).(1, akx.size))
-    LinearIndices(akx.size)[CartesianIndex(pix_i)]
-end
-
 # world_to_pix has a constant overhead of a few μs, this batch method calls it only once
 function AxisKeys.findindex(sels::AbstractArray{<:Near{<:AbstractSkyCoords}}, akx::WCSAxkeys{NS,NW}) where {NS,NW}
     worlds = map(sels) do sel
@@ -126,6 +117,14 @@ end
 #     NN.inrange(h.tree, coords_to_3d(center(sel.x)), AstroCatalogUtils.separation_to_chord(radius(sel.x)))
 #     # Healpix.queryDiscRing(h.resolution, Healpix.lat2colat(dec), mod2pi(ra), radius(sel.x); fact=2)
 # end
+
+
+
+
+
+AxisKeys.findindex(sel::Near{<:AbstractSkyCoords}, axk::Union{WCSAxkeys, HealpixAxkeys}) = AxisKeys.findindex([sel], axk) |> only
+AxisKeys.findindex(sel::Interp{<:AbstractSkyCoords}, axk::Union{WCSAxkeys, HealpixAxkeys}) = AxisKeys.findindex([sel], axk) |> only
+
 
 
 boundingbox(axk) = boundingbox(coordstype(axk), axk)
