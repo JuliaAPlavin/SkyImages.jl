@@ -193,7 +193,7 @@ function _native_rect_image(::Type{T}, A, axk::WCSAxkeys{NS,NW}) where {T,NS,NW}
     ) |> map(maybe_to_range)
     if T <: AbstractProjectedCoords
         origin = deg2rad.(axk.wcs.crval[1:NS])
-        axkeys = map(.-, axkeys, origin)
+        axkeys = @p axkeys |> map(.-, __, origin) |> @modify(ras -> ras .* cos(origin[2]), __[1])
     end
 
     names = if is_ax_separable(axk.wcs, 1) && is_ax_separable(axk.wcs, 2)

@@ -1,7 +1,7 @@
 name = "SkyImages"
 uuid = "2d546a2e-713c-402d-bee5-ba90cc43b84b"
 authors = ["Alexander Plavin <alexander@plav.in>"]
-version = "0.1.7"
+version = "0.1.8"
 
 [deps]
 AccessorsExtra = "33016aad-b69d-45be-9359-82a41f556fd4"
