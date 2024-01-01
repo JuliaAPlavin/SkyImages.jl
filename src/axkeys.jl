@@ -222,7 +222,7 @@ _pix_to_world(wcs::WCS.WCSTransform, pixs::AbstractArray{<:CartesianIndex}, args
     _pix_to_world(wcs, __, args...)
 end
 
-_pix_to_world(wcs::WCS.WCSTransform, pixs::AbstractArray{<:Tuple{Vararg{<:Number}}}, ::Val{NS}, ::Val{NW}) where {NS,NW} = @p begin
+_pix_to_world(wcs::WCS.WCSTransform, pixs::AbstractArray{<:Tuple{Vararg{Number}}}, ::Val{NS}, ::Val{NW}) where {NS,NW} = @p begin
     pixs
     map((_..., ntuple(Returns(1), NW - NS)...) .|> Float64)
     reinterpret(reshape, Float64, __)
