@@ -35,19 +35,20 @@ AxisKeys.findindex(sel::Near{<:AbstractSkyCoords}, axk::WCSAxkeys) = AxisKeys.fi
 
 # world_to_pix has a constant overhead of a few μs, this batch method calls it only once
 function AxisKeys.findindex(sels::AbstractArray{<:Near{<:AbstractSkyCoords}}, axk::WCSAxkeys{NS,NW}) where {NS,NW}
-    worlds = map(sels) do sel
-        valc = convert(coordstype(axk), sel.val)
-        world = (SkyCoords.lon(valc) |> rad2deg, SkyCoords.lat(valc) |> rad2deg, ntuple(Returns(1.0), NW - 2)...)
-    end
+    @modify(vec(sels)) do sels
+        worlds = map(sels) do sel
+            valc = convert(coordstype(axk), sel.val)
+            world = (SkyCoords.lon(valc) |> rad2deg, SkyCoords.lat(valc) |> rad2deg, ntuple(Returns(1.0), NW - 2)...)
+        end
 
-    # world_to_pix: pass flat vector of world coords (as 2d matrix), get flat vector of pix coords
-    pixs_vec_full = WCS.world_to_pix(axk.wcs, collect(reinterpret(reshape, Float64, vec(worlds))))
-    pixs_vec = reinterpret(reshape, NTuple{NS,Float64}, @view pixs_vec_full[1:NS, :])
+        # world_to_pix: pass flat vector of world coords (as 2d matrix), get flat vector of pix coords
+        pixs_full = WCS.world_to_pix(axk.wcs, collect(reinterpret(reshape, Float64, worlds)))
+        pixs = reinterpret(reshape, NTuple{NS,Float64}, @view pixs_full[1:NS, :])
 
-    pixs = @set vec(sels) = pixs_vec
-    map(pixs) do pix
-        pix_i = clamp.(round.(Int, pix), (:).(1, axk.size))
-        LinearIndices(axk.size)[CartesianIndex(pix_i)]
+        map(pixs) do pix
+            pix_i = clamp.(round.(Int, pix), (:).(1, axk.size))
+            LinearIndices(axk.size)[CartesianIndex(pix_i)]
+        end
     end
 end
 
@@ -55,27 +56,28 @@ _getkey(A, sels::Interp{<:AbstractSkyCoords}, axk::WCSAxkeys) = _getkey(A, [sels
 
 # world_to_pix has a constant overhead of a few μs, this batch method calls it only once
 function _getkey(A, sels::AbstractArray{<:Interp{<:AbstractSkyCoords}}, axk::WCSAxkeys{NS,NW}) where {NS,NW}
-    worlds = map(sels) do sel
-        valc = convert(coordstype(axk), sel.val)
-        valc = @modify(SkyCoords.lon(valc) |> If(∈(sel.avoid_lons))) do l
-            argmin(e -> abs(e - l), endpoints(sel.avoid_lons))
+    @modify(vec(sels)) do sels
+        worlds = map(sels) do sel
+            valc = convert(coordstype(axk), sel.val)
+            valc = @modify(SkyCoords.lon(valc) |> If(∈(sel.avoid_lons))) do l
+                argmin(e -> abs(e - l), endpoints(sel.avoid_lons))
+            end
+            world = (SkyCoords.lon(valc) |> rad2deg, SkyCoords.lat(valc) |> rad2deg, ntuple(Returns(1.0), NW - 2)...)
         end
-        world = (SkyCoords.lon(valc) |> rad2deg, SkyCoords.lat(valc) |> rad2deg, ntuple(Returns(1.0), NW - 2)...)
-    end
 
-    # world_to_pix: pass flat vector of world coords (as 2d matrix), get flat vector of pix coords
-    pixs_vec_full = WCS.world_to_pix(axk.wcs, collect(reinterpret(reshape, Float64, vec(worlds))))
-    pixs_vec = reinterpret(reshape, NTuple{NS,Float64}, @view pixs_vec_full[1:NS, :])
-    pixs = @set vec(sels) = pixs_vec
+        # world_to_pix: pass flat vector of world coords (as 2d matrix), get flat vector of pix coords
+        pixs_full = WCS.world_to_pix(axk.wcs, collect(reinterpret(reshape, Float64, worlds)))
+        pixs = reinterpret(reshape, NTuple{NS,Float64}, @view pixs_full[1:NS, :])
 
-    @assert allequal(s.order for s in sels)
-    itp = @p A |>
-        reshape(__, axk.size) |>
-        interpolate(__, itp_spec(sels[1].order)) |>
-        extrapolate(__, NaN)
+        @assert allequal(s.order for s in sels)
+        itp = @p A |>
+            reshape(__, axk.size) |>
+            interpolate(__, itp_spec(sels[1].order)) |>
+            extrapolate(__, NaN)
 
-    map(pixs) do pix
-        itp(pix...)
+        map(pixs) do pix
+            itp(pix...)
+        end
     end
 end
 
