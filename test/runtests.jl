@@ -186,16 +186,23 @@ end
 end
 
 @testitem "Makie" begin
-    using MakieExtra
+    using Makie
     using SkyCoords
 
     simg = SkyImages.load(joinpath(@__DIR__, "data/vlass.fits"))
+    v = (xlabel="ra (°)", ylabel="dec (°)")
     heatmap(simg)
+    @test current_axis().xlabel[] == v.xlabel && current_axis().ylabel[] == v.ylabel
     image(simg)
+    @test current_axis().xlabel[] == v.xlabel && current_axis().ylabel[] == v.ylabel
     image(simg, npix=100)
+    @test current_axis().xlabel[] == v.xlabel && current_axis().ylabel[] == v.ylabel
     contour(simg)
+    @test current_axis().xlabel[] == v.xlabel && current_axis().ylabel[] == v.ylabel
     contourf(simg)
+    @test current_axis().xlabel[] == v.xlabel && current_axis().ylabel[] == v.ylabel
     image(simg; coordstype=GalCoords)
+    @test current_axis().xlabel[] == "l (°)" && current_axis().ylabel[] == "b (°)"
 end
 
 
