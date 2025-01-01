@@ -20,6 +20,13 @@ Base.isapprox(a::T, b::T; kwargs...) where {T <: CoordsRectangle} = isapprox(a.a
 
 function RectiGrids.grid(r::CoordsRectangle{T}; lengths) where {T}
     lons = range(lon(r.a), lon(r.b) + (is_lon_wrap(r) ? 2π : 0); length=first(lengths))
+    # put lons close to zero:
+    while minimum(lons) > 0.1
+        lons = lons .- 2π
+    end
+    while maximum(lons) < -0.1
+        lons = lons .+ 2π
+    end
     lats = range(lat(r.a), lat(r.b); length=last(lengths))
     RectiGrids.grid(T; NamedTuple{fieldnames(T)}((lons, lats))...)
 end

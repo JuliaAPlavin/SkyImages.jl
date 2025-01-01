@@ -71,7 +71,7 @@ end
     g = grid(r; lengths=3)
     @test size(g) == (3, 3)
     @test g[2, 2] == ICRSCoords(6, 0.9)
-    @test named_axiskeys(g) == (ra=[5, 6, 7], dec=[0.5, 0.9, 1.3])
+    @test named_axiskeys(g) === (ra=-1.2831853071795862:1.0:0.7168146928204138, dec=0.5:0.4:1.3)
     @test ICRSCoords(5, 1) ∈ r
     @test ICRSCoords(6, 1) ∈ r
     @test ICRSCoords(7, 1) ∈ r
