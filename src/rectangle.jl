@@ -19,7 +19,7 @@ Base.isapprox(a::T, b::T; kwargs...) where {T <: CoordsRectangle} = isapprox(a.a
 
 
 function RectiGrids.grid(r::CoordsRectangle{T}; lengths) where {T}
-    lons = range(lon(r.a), lon(r.b) + (is_lon_wrap(r) ? 2π : 0); length=first(lengths))
+    lons = range(lon(r.b) + (is_lon_wrap(r) ? 2π : 0), lon(r.a); length=first(lengths))
     # put lons close to zero:
     while minimum(lons) > 0.1
         lons = lons .- 2π
@@ -33,7 +33,7 @@ end
 
 function RectiGrids.grid(r::CoordsRectangle{T}; lengths) where {T<:ProjectedCoords}
     @assert origin(r.a) === origin(r.b)
-    lons = range(r.a.xy[1], r.b.xy[1]; length=first(lengths))
+    lons = range(r.b.xy[1], r.a.xy[1]; length=first(lengths))
     lats = range(r.a.xy[2], r.b.xy[2]; length=last(lengths))
     map(xy -> ProjectedCoords(r.a.center, xy),
         RectiGrids.grid(Tuple; NamedTuple{fieldnames(parent_coords_type(T))}((lons, lats))...)
@@ -42,7 +42,7 @@ end
 
 function RectiGrids.grid(r::CoordsRectangle{T}; lengths) where {T<:ProjectedCoords{<:Val}}
     @assert origin(r.a) === origin(r.b)
-    lons = range(r.a.xy[1], r.b.xy[1]; length=first(lengths))
+    lons = range(r.b.xy[1], r.a.xy[1]; length=first(lengths))
     lats = range(r.a.xy[2], r.b.xy[2]; length=last(lengths))
     RectiGrids.grid(T; NamedTuple{fieldnames(parent_coords_type(T))}((lons, lats))...)
 end

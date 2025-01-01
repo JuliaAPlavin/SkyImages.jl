@@ -41,13 +41,15 @@ end
 
     g = grid(r; lengths=3)
     @test size(g) == (3, 3)
+    @test g[1, 2] == ICRSCoords(0.2, -0.1)
     @test g[2, 2] == ICRSCoords(0.15, -0.1)
-    @test named_axiskeys(g) == (ra=[0.1, 0.15, 0.2], dec=[-0.2, -0.1, 0])
+    @test named_axiskeys(g) == (ra=[0.2, 0.15, 0.1], dec=[-0.2, -0.1, 0])
 
     g = grid(r; lengths=(3, 5))
     @test size(g) == (3, 5)
+    @test g[1, 2] == ICRSCoords(0.2, -0.15)
     @test g[2, 2] == ICRSCoords(0.15, -0.15)
-    @test named_axiskeys(g) == (ra = 0.1:0.05:0.2, dec = -0.2:0.05:0.0)
+    @test named_axiskeys(g) == (ra = 0.2:-0.05:0.1, dec = -0.2:0.05:0.0)
 
     c0 = ICRSCoords(0.11, -0.21)
     rp = project(c0, r)
@@ -65,13 +67,13 @@ end
     r = CoordsRectangle(GalCoords(0.1, -0.2), GalCoords(0.2, 0))
     g = grid(r; lengths=3)
     @test g[2, 2] == GalCoords(0.15, -0.1)
-    @test named_axiskeys(g) == (l=[0.1, 0.15, 0.2], b=[-0.2, -0.1, 0])
+    @test named_axiskeys(g) == (l=[0.2, 0.15, 0.1], b=[-0.2, -0.1, 0])
 
     r = SkyImages.CoordsRectangle(ICRSCoords(5, 0.5), ICRSCoords(7, 1.3))
     g = grid(r; lengths=3)
     @test size(g) == (3, 3)
     @test g[2, 2] == ICRSCoords(6, 0.9)
-    @test named_axiskeys(g) === (ra=-1.2831853071795862:1.0:0.7168146928204138, dec=0.5:0.4:1.3)
+    @test named_axiskeys(g) == (ra=0.7168146928204138:-1.0:-1.2831853071795862, dec=0.5:0.4:1.3)
     @test ICRSCoords(5, 1) ∈ r
     @test ICRSCoords(6, 1) ∈ r
     @test ICRSCoords(7, 1) ∈ r
