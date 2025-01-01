@@ -23,7 +23,10 @@ using AxisKeys
 using IntervalSets
 
 # ╔═╡ 5895623e-2047-4bc5-b2a6-804027c4233b
-using MakieExtra, CairoMakie
+using CairoMakie
+
+# ╔═╡ a26da5d7-f13a-4cf1-9391-79d2ab5e3e0c
+using MakieExtra
 
 # ╔═╡ e3c72be9-8488-4c01-843c-16553057a0b5
 using SkyImages; using SkyImages: boundingbox
@@ -711,22 +714,22 @@ Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 UnitfulAngles = "6fb2a4bd-7999-5318-a3b2-8ad61056cd98"
 
 [compat]
-AccessorsExtra = "~0.1.71"
+AccessorsExtra = "~0.1.73"
 AstroImages = "~0.5.0"
 AxisKeys = "~0.2.14"
 CairoMakie = "~0.12.3"
 DataPipes = "~0.3.16"
 DisplayAs = "~0.1.6"
-GeoMakie = "~0.7.1"
+GeoMakie = "~0.7.2"
 IntervalSets = "~0.7.10"
-MakieExtra = "~0.1.10"
+MakieExtra = "~0.1.11"
 Plots = "~1.40.4"
 PlutoUI = "~0.7.59"
 PyFormattedStrings = "~0.1.11"
 RectiGrids = "~0.1.18"
 Skipper = "~0.1.13"
 SkyCoords = "~1.4.0"
-SkyImages = "~0.1.10"
+SkyImages = "~0.1.11"
 StatsBase = "~0.34.3"
 Unitful = "~1.20.0"
 UnitfulAngles = "~0.7.2"
@@ -738,7 +741,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "305ea2253a70ade344e7beaf0e6a07239182e954"
+project_hash = "01966a78aec4e9854a3ee2f7dd9b38b7c6b534f8"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -777,10 +780,10 @@ weakdeps = ["AxisKeys", "IntervalSets", "Requires", "StaticArrays", "StructArray
     AccessorsUnitfulExt = "Unitful"
 
 [[deps.AccessorsExtra]]
-deps = ["Accessors", "CompositionsBase", "ConstructionBase", "DataPipes", "InverseFunctions", "Reexport"]
-git-tree-sha1 = "347ceade87b396742f7191a587055dcb1df13706"
+deps = ["Accessors", "CompositionsBase", "ConstructionBase", "DataPipes", "InverseFunctions", "LinearAlgebra", "Reexport", "Test"]
+git-tree-sha1 = "00e29911b476d7bd30a5419e4b691f319ea31d77"
 uuid = "33016aad-b69d-45be-9359-82a41f556fd4"
-version = "0.1.71"
+version = "0.1.73"
 
     [deps.AccessorsExtra.extensions]
     ColorTypesExt = "ColorTypes"
@@ -790,12 +793,10 @@ version = "0.1.71"
     DomainSetsExt = "DomainSets"
     FlexiMapsExt = "FlexiMaps"
     FlexiMapsStructArraysExt = ["FlexiMaps", "StructArrays"]
-    LinearAlgebraExt = "LinearAlgebra"
     SkipperExt = "Skipper"
     StaticArraysExt = "StaticArrays"
     StructArraysExt = "StructArrays"
     TablesExt = "Tables"
-    TestExt = "Test"
     URIsExt = "URIs"
 
     [deps.AccessorsExtra.weakdeps]
@@ -805,12 +806,10 @@ version = "0.1.71"
     Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
     DomainSets = "5b8099bc-c8ec-5219-889f-1d9e522a28bf"
     FlexiMaps = "6394faf6-06db-4fa8-b750-35ccc60383f7"
-    LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
     Skipper = "fc65d762-6112-4b1c-b428-ad0792653d81"
     StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
     StructArrays = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
     Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
-    Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
     URIs = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
 
 [[deps.Adapt]]
@@ -927,13 +926,14 @@ version = "0.2.14"
 
 [[deps.AxisKeysExtra]]
 deps = ["AxisKeys", "Reexport", "StructArrays"]
-git-tree-sha1 = "de5cf555b816a9ea5a63cefba6ebefc5d4f36ccb"
+git-tree-sha1 = "fe663daf0b3af29751acd69f68cc232e9cd8dbb5"
 uuid = "b7a0d2b7-1990-46dc-b5dd-87820ecd1b09"
-version = "0.1.10"
-weakdeps = ["DimensionalData", "Makie", "RectiGrids", "Unitful"]
+version = "0.1.11"
+weakdeps = ["DimensionalData", "GeoMakie", "Makie", "RectiGrids", "Unitful"]
 
     [deps.AxisKeysExtra.extensions]
     DimensionalDataExt = "DimensionalData"
+    GeoMakieExt = "GeoMakie"
     MakieExt = "Makie"
     RectiGridsExt = "RectiGrids"
     UnitfulExt = "Unitful"
@@ -942,9 +942,9 @@ weakdeps = ["DimensionalData", "Makie", "RectiGrids", "Unitful"]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[deps.BitFlags]]
-git-tree-sha1 = "2dc09997850d68179b69dafb58ae806167a32b1b"
+git-tree-sha1 = "0691e34b3bb8be9307330f88d1a3c3f25466c24d"
 uuid = "d1d4a3ce-64b1-5f1a-9ba4-7e7e69966f35"
-version = "0.1.8"
+version = "0.1.9"
 
 [[deps.Bzip2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1457,9 +1457,9 @@ weakdeps = ["Makie"]
 
 [[deps.GeoMakie]]
 deps = ["Colors", "Downloads", "GeoFormatTypes", "GeoInterface", "GeoJSON", "Geodesy", "GeometryBasics", "GeometryOps", "ImageIO", "LinearAlgebra", "Makie", "NaturalEarth", "Proj", "Reexport", "Statistics", "StructArrays"]
-git-tree-sha1 = "9fd215bb9b042df7d50caf16ecb9f657e2dd625f"
+git-tree-sha1 = "8624af778e279155a327420393abe396580f56c9"
 uuid = "db073c08-6b98-4ee5-b6a4-5efafb3259c6"
-version = "0.7.1"
+version = "0.7.2"
 
 [[deps.Geodesy]]
 deps = ["CoordinateTransformations", "Dates", "LinearAlgebra", "StaticArrays"]
@@ -1475,9 +1475,9 @@ version = "0.4.11"
 
 [[deps.GeometryOps]]
 deps = ["CoordinateTransformations", "ExactPredicates", "GeoInterface", "GeometryBasics", "InteractiveUtils", "LinearAlgebra", "SortTileRecursiveTree", "Statistics", "Tables"]
-git-tree-sha1 = "c1f0a5abed20a9d5a953cded2b961361dec2f677"
+git-tree-sha1 = "ca98bc32c15eaf72a6325100fbe70393a438eb4f"
 uuid = "3251bfac-6a57-4b6d-aa61-ac1fef2975ab"
-version = "0.1.8"
+version = "0.1.9"
 
     [deps.GeometryOps.extensions]
     GeometryOpsFlexiJoinsExt = "FlexiJoins"
@@ -1952,9 +1952,9 @@ version = "0.8.3"
 
 [[deps.MakieExtra]]
 deps = ["Accessors", "DataManipulation", "DataPipes", "InverseFunctions", "Makie", "PyFormattedStrings", "Reexport"]
-git-tree-sha1 = "c082c5a92c857da998017ac9fb5d579ce9a4686c"
+git-tree-sha1 = "ee3425f2a18cc51d4d1056e4be4fbb0a5ec50767"
 uuid = "54e234d5-9986-40d8-815f-a5e42de435f6"
-version = "0.1.10"
+version = "0.1.11"
 
 [[deps.MappedArrays]]
 git-tree-sha1 = "2dab0221fe2b0f2cb6754eaa743cc266339f527e"
@@ -2449,7 +2449,7 @@ uuid = "45858cf5-a6b0-47a3-bbea-62219f50df47"
 version = "0.1.3"
 
 [[deps.Skipper]]
-git-tree-sha1 = "735fc729f4ff1940c3b3436ff6de6598af8b1603"
+git-tree-sha1 = "b18148264375368f6b9c1a7743913a11706b8698"
 uuid = "fc65d762-6112-4b1c-b428-ad0792653d81"
 version = "0.1.13"
 weakdeps = ["Accessors", "AxisKeys", "Dictionaries", "Makie"]
@@ -2473,13 +2473,13 @@ weakdeps = ["Accessors", "Unitful"]
 
 [[deps.SkyImages]]
 deps = ["AccessorsExtra", "AxisKeys", "AxisKeysExtra", "ConstructionBase", "DataPipes", "DirectionalStatistics", "FITSIO", "Healpix", "Interpolations", "IntervalSets", "RectiGrids", "SkyCoords", "Unitful", "WCS"]
-git-tree-sha1 = "bc7f02eba17b4a7f510c0114d6cd05ecfc94f2b9"
+git-tree-sha1 = "1fffbc8877d875207bdc0e49bb6830459fa59988"
 uuid = "2d546a2e-713c-402d-bee5-ba90cc43b84b"
-version = "0.1.10"
-weakdeps = ["MakieExtra"]
+version = "0.1.11"
+weakdeps = ["Makie"]
 
     [deps.SkyImages.extensions]
-    MakieExt = "MakieExtra"
+    MakieExt = "Makie"
 
 [[deps.SnoopPrecompile]]
 deps = ["Preferences"]
@@ -3152,6 +3152,7 @@ version = "1.4.1+1"
 # ╠═1265dd87-7395-4637-8b07-8dd5df20e43b
 # ╠═ff0af8fa-7b8e-4b5a-a5c7-65da3c99e163
 # ╠═5895623e-2047-4bc5-b2a6-804027c4233b
+# ╠═a26da5d7-f13a-4cf1-9391-79d2ab5e3e0c
 # ╠═e3c72be9-8488-4c01-843c-16553057a0b5
 # ╠═bae108cc-f9d5-4667-aa51-6fc3481b02c5
 # ╠═f27b825e-b90f-4b8b-a04c-bc7df379383c
