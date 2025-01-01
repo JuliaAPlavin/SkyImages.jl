@@ -192,6 +192,7 @@ end
     simg = SkyImages.load(joinpath(@__DIR__, "data/vlass.fits"))
     heatmap(simg)
     image(simg)
+    image(simg, npix=100)
     contour(simg)
     contourf(simg)
     image(simg; coordstype=GalCoords)

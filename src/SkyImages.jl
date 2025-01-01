@@ -65,7 +65,7 @@ function eval_at_coords(img, coords; order=nothing, kwargs...)
     end
 end
 
-function convert_to_rectangular_KA(img::KA_TYPE; coordstype=nothing, npix=200)
+function convert_to_rectangular_KA(img::KA_TYPE; coordstype=nothing, npix=1024)
     axk = axiskeys(img, :coords)
     bbox = isnothing(coordstype) ? boundingbox(axk) : boundingbox(coordstype, axk)
     @p let
