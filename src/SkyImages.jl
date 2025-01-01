@@ -25,7 +25,15 @@ include("axkeys.jl")
 
 function load(path; kwargs...)
     FITS(path) do f
-        hdu = only(Iterators.filter(hdu -> is_image_hdu(hdu) || is_healpix_hdu(hdu), f))
+        hdu = if haskey(kwargs, :hdu)
+            hdu = f[kwargs[:hdu]]
+            if !(is_image_hdu(hdu) || is_healpix_hdu(hdu))
+                @warn "selected HDU $(kwargs[:hdu]) is neither an image HDU nor a HEALPix HDU"
+            end
+            hdu
+        else
+            first(Iterators.filter(hdu -> is_image_hdu(hdu) || is_healpix_hdu(hdu), f))
+        end
         if is_healpix_hdu(hdu)
             column = 1  # XXX: hardcoded
             T = Float64  # XXX: hardcoded

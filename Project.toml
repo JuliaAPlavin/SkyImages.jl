@@ -1,7 +1,7 @@
 name = "SkyImages"
 uuid = "2d546a2e-713c-402d-bee5-ba90cc43b84b"
 authors = ["Alexander Plavin <alexander@plav.in>"]
-version = "0.1.8"
+version = "0.1.9"
 
 [deps]
 AccessorsExtra = "33016aad-b69d-45be-9359-82a41f556fd4"
@@ -25,7 +25,7 @@ DataPipes = "0.2.16, 0.3"
 DirectionalStatistics = "0.1.18"
 FITSIO = "0.16.13, 0.17"
 Healpix = "4.0.1"
-Interpolations = "0.14.3"
+Interpolations = "0.15"
 IntervalSets = "0.7.1"
 RectiGrids = "0.1.11"
 SkyCoords = "1.0.1"
