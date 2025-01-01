@@ -524,31 +524,34 @@ end;
 
 # ╔═╡ 2bd8cb76-4c90-48f6-80d5-6c790045f314
 let
-	fig = Figure(size=(1400, 300))
+	fig = Figure()
 	@p begin
 		m87_images
 		# should go smallest to largest
 		sort(by=__ -> __.image |> axiskeys(__, :ra) |> extrema |> abs(__[2] - __[1]))
 		enumerate(__)
 		map() do (i, p)
+			ix = i ≤ 4 ? (1, i) : (2, 4-(i-5))
 			ax, plt = @p p.image image(
-				fig[1,i], __, colormap=:turbo, axis=(xreversed=true, title=p.label),  # XXX: can/should reverse be automatic?..
+				fig[ix...], __, colormap=:turbo, axis=(xreversed=true, width=300, height=300),  # XXX: can/should reverse be automatic?..
 				colorscale=SymLog(maximum(skip(isnan,__))/p.dynrange, vmin=0, vmax=quantile(skip(isnan,__), 1-3e-4)),
 			)
 			hidedecorations!(ax)
-			# plt.gca().add_artist(ScalebarArtist(
-			# 	[
-			# 		(u"rad"/u"as", x -> x < 1e-4 ? f"{10^6*x:d} μas" : x < 0.1 ? f"{1000x:d} mas" : x < 500 ? f"{x}\"" : f"{x/60:d}'"),
-			# 		(80*u"rad"/u"as", x -> x < 1e-2 ? f"{round(x * 206265, sigdigits=1):d} AU" : x < 1e3 ? f"{x} pc" : f"{x / 1000:d} kpc")
-			# 	];
-			# 	loc="lower right", color=:w,
-			# ))
+			text!((0.99, 0.99), text=p.label, color=:white, space=:relative, align=(:right, :top))
+			scalebar!((
+				1u"rad"|>u"arcsecond", 
+				x -> x < 1e-4 ? f"{10^6*x:d} μas" : x < 0.1 ? f"{1000x:d} mas" : x < 500 ? f"{x}\"" : f"{x/60:d}'",
+			), color=:white)
+			scalebar!((
+				80u"rad"|>u"arcsecond", 
+				x -> x < 1e-2 ? f"{round(x * 206265, sigdigits=1):d} AU" : x < 1e3 ? f"{x} pc" : f"{x / 1000:d} kpc",
+			), color=:white, position=Point2(0.15, 0.08))
 		end
 	end
-	# for (a, b) in zip(ax[1:end-1], ax[2:end])
-	# 	add_zoom_patch(a, b, :horizontal; color=:"0.5")
-	# end
-	# resize_to_layout!(fig)
+	for (a, b) in @p contents(fig[:,:]) zip(__[1:end-1], __[2:end])
+		zoom_lines!(a, b, strokecolor=Gray(0.7))
+	end
+	resize_to_layout!(fig)
 	fig
 end
 
@@ -716,7 +719,7 @@ DataPipes = "~0.3.16"
 DisplayAs = "~0.1.6"
 GeoMakie = "~0.7.1"
 IntervalSets = "~0.7.10"
-MakieExtra = "~0.1.9"
+MakieExtra = "~0.1.10"
 Plots = "~1.40.4"
 PlutoUI = "~0.7.59"
 PyFormattedStrings = "~0.1.11"
@@ -735,7 +738,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "514cfc038abd564430ffe3db2f992fc8e231b914"
+project_hash = "305ea2253a70ade344e7beaf0e6a07239182e954"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1049,6 +1052,11 @@ git-tree-sha1 = "362a287c3aa50601b0bc359053d5c2468f0e7ce0"
 uuid = "5ae59095-9a9b-59fe-a467-6f913c188581"
 version = "0.12.11"
 
+[[deps.Combinatorics]]
+git-tree-sha1 = "08c8b6831dc00bfea825826be0bc8336fc369860"
+uuid = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
+version = "1.0.2"
+
 [[deps.Compat]]
 deps = ["TOML", "UUIDs"]
 git-tree-sha1 = "b1c55339b7c6c350ee89f2c1604299660525b248"
@@ -1106,6 +1114,16 @@ git-tree-sha1 = "abe83f3a2f1b857aac70ef8b269080af17764bbe"
 uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
 version = "1.16.0"
 
+[[deps.DataManipulation]]
+deps = ["Accessors", "AccessorsExtra", "DataPipes", "Dictionaries", "FlexiGroups", "FlexiMaps", "InverseFunctions", "Reexport", "Skipper", "StructArrays"]
+git-tree-sha1 = "cb78875af54391b0e30732bd25d571186a59953d"
+uuid = "38052440-ad76-4236-8414-61389b2c5143"
+version = "0.1.16"
+weakdeps = ["IntervalSets"]
+
+    [deps.DataManipulation.extensions]
+    IntervalSetsExt = "IntervalSets"
+
 [[deps.DataPipes]]
 git-tree-sha1 = "79843dda2bbd58d62123027d38051a1bf0b646eb"
 uuid = "02685ad9-2d12-40c3-9f73-c6aeda6a7ff5"
@@ -1137,6 +1155,12 @@ deps = ["Mmap"]
 git-tree-sha1 = "9e2f36d3c96a820c678f2f1f1782582fcf685bae"
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 version = "1.9.1"
+
+[[deps.Dictionaries]]
+deps = ["Indexing", "Random", "Serialization"]
+git-tree-sha1 = "35b66b6744b2d92c778afd3a88d2571875664a2a"
+uuid = "85a47980-9c8c-11e8-2b9f-f7ca1fa99fb4"
+version = "0.4.2"
 
 [[deps.DimensionalData]]
 deps = ["Adapt", "ArrayInterface", "ConstructionBase", "DataAPI", "Dates", "Extents", "Interfaces", "IntervalSets", "InvertedIndices", "IteratorInterfaceExtensions", "LinearAlgebra", "PrecompileTools", "Random", "RecipesBase", "SparseArrays", "Statistics", "TableTraits", "Tables"]
@@ -1313,6 +1337,38 @@ git-tree-sha1 = "05882d6995ae5c12bb5f36dd2ed3f61c98cbb172"
 uuid = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
 version = "0.8.5"
 
+[[deps.FlexiGroups]]
+deps = ["AccessorsExtra", "Combinatorics", "DataPipes", "Dictionaries", "FlexiMaps"]
+git-tree-sha1 = "d4cd4a4e52b938fa6000ef5cad8f2a8afcd5eaa9"
+uuid = "1e56b746-2900-429a-8028-5ec1f00612ec"
+version = "0.1.25"
+
+    [deps.FlexiGroups.extensions]
+    AxisKeysExt = "AxisKeys"
+    CategoricalArraysExt = "CategoricalArrays"
+    OffsetArraysExt = "OffsetArrays"
+    StructArraysExt = "StructArrays"
+
+    [deps.FlexiGroups.weakdeps]
+    AxisKeys = "94b1ba4f-4ee9-5380-92f1-94cde586c3c5"
+    CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
+    OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
+    StructArrays = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
+
+[[deps.FlexiMaps]]
+deps = ["Accessors", "DataPipes", "InverseFunctions"]
+git-tree-sha1 = "f76187f46bca3cce99bdea910e4e14f8fa2fff31"
+uuid = "6394faf6-06db-4fa8-b750-35ccc60383f7"
+version = "0.1.26"
+weakdeps = ["AxisKeys", "Dictionaries", "IntervalSets", "StructArrays", "Unitful"]
+
+    [deps.FlexiMaps.extensions]
+    AxisKeysExt = "AxisKeys"
+    DictionariesExt = "Dictionaries"
+    IntervalSetsExt = "IntervalSets"
+    StructArraysExt = "StructArrays"
+    UnitfulExt = "Unitful"
+
 [[deps.Fontconfig_jll]]
 deps = ["Artifacts", "Bzip2_jll", "Expat_jll", "FreeType2_jll", "JLLWrappers", "Libdl", "Libuuid_jll", "Zlib_jll"]
 git-tree-sha1 = "db16beca600632c95fc8aca29890d83788dd8b23"
@@ -1356,15 +1412,15 @@ version = "3.3.9+0"
 
 [[deps.GR]]
 deps = ["Artifacts", "Base64", "DelimitedFiles", "Downloads", "GR_jll", "HTTP", "JSON", "Libdl", "LinearAlgebra", "Preferences", "Printf", "Random", "Serialization", "Sockets", "TOML", "Tar", "Test", "p7zip_jll"]
-git-tree-sha1 = "ddda044ca260ee324c5fc07edb6d7cf3f0b9c350"
+git-tree-sha1 = "3e527447a45901ea392fe12120783ad6ec222803"
 uuid = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
-version = "0.73.5"
+version = "0.73.6"
 
 [[deps.GR_jll]]
 deps = ["Artifacts", "Bzip2_jll", "Cairo_jll", "FFMPEG_jll", "Fontconfig_jll", "FreeType2_jll", "GLFW_jll", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Libtiff_jll", "Pixman_jll", "Qt6Base_jll", "Zlib_jll", "libpng_jll"]
-git-tree-sha1 = "278e5e0f820178e8a26df3184fcb2280717c79b1"
+git-tree-sha1 = "182c478a179b267dd7a741b6f8f4c3e0803795d6"
 uuid = "d2c73de3-f751-5644-a686-071e5b155ba9"
-version = "0.73.5+0"
+version = "0.73.6+0"
 
 [[deps.GeoFormatTypes]]
 git-tree-sha1 = "59107c179a586f0fe667024c5eb7033e81333271"
@@ -1551,6 +1607,11 @@ deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "0936ba688c6d201805a83da835b55c61a180db52"
 uuid = "905a6f67-0a94-5f89-b386-d35d92009cd1"
 version = "3.1.11+0"
+
+[[deps.Indexing]]
+git-tree-sha1 = "ce1566720fd6b19ff3411404d4b977acd4814f9f"
+uuid = "313cdc1a-70c2-5d6a-ae34-0150d3930a38"
+version = "1.1.1"
 
 [[deps.IndirectArrays]]
 git-tree-sha1 = "012e604e1c7458645cb8b436f8fba789a51b257f"
@@ -1890,10 +1951,10 @@ uuid = "20f20a25-4f0e-4fdf-b5d1-57303727442b"
 version = "0.8.3"
 
 [[deps.MakieExtra]]
-deps = ["Accessors", "InverseFunctions", "Makie", "PyFormattedStrings", "Reexport"]
-git-tree-sha1 = "6e0dee7cadb77af7c198f94061d350576fc4d117"
+deps = ["Accessors", "DataManipulation", "DataPipes", "InverseFunctions", "Makie", "PyFormattedStrings", "Reexport"]
+git-tree-sha1 = "c082c5a92c857da998017ac9fb5d579ce9a4686c"
 uuid = "54e234d5-9986-40d8-815f-a5e42de435f6"
-version = "0.1.9"
+version = "0.1.10"
 
 [[deps.MappedArrays]]
 git-tree-sha1 = "2dab0221fe2b0f2cb6754eaa743cc266339f527e"
@@ -2216,9 +2277,9 @@ version = "1.0.0"
 
 [[deps.Qt6Base_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "Libdl", "Libglvnd_jll", "OpenSSL_jll", "Vulkan_Loader_jll", "Xorg_libSM_jll", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Xorg_libxcb_jll", "Xorg_xcb_util_cursor_jll", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_keysyms_jll", "Xorg_xcb_util_renderutil_jll", "Xorg_xcb_util_wm_jll", "Zlib_jll", "libinput_jll", "xkbcommon_jll"]
-git-tree-sha1 = "37b7bb7aabf9a085e0044307e1717436117f2b3b"
+git-tree-sha1 = "492601870742dcd38f233b23c3ec629628c1d724"
 uuid = "c0090381-4147-56d7-9ebc-da0b1113ec56"
-version = "6.5.3+1"
+version = "6.7.1+1"
 
 [[deps.QuadGK]]
 deps = ["DataStructures", "LinearAlgebra"]
@@ -2391,18 +2452,13 @@ version = "0.1.3"
 git-tree-sha1 = "735fc729f4ff1940c3b3436ff6de6598af8b1603"
 uuid = "fc65d762-6112-4b1c-b428-ad0792653d81"
 version = "0.1.13"
+weakdeps = ["Accessors", "AxisKeys", "Dictionaries", "Makie"]
 
     [deps.Skipper.extensions]
     AccessorsExt = "Accessors"
     AxisKeysExt = "AxisKeys"
     DictionariesExt = "Dictionaries"
     MakieExt = "Makie"
-
-    [deps.Skipper.weakdeps]
-    Accessors = "7d9f7c33-5ae7-4f3b-8dc6-eff91059b697"
-    AxisKeys = "94b1ba4f-4ee9-5380-92f1-94cde586c3c5"
-    Dictionaries = "85a47980-9c8c-11e8-2b9f-f7ca1fa99fb4"
-    Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 
 [[deps.SkyCoords]]
 deps = ["AstroAngles", "ConstructionBase", "LinearAlgebra", "Rotations", "StaticArrays"]
@@ -3109,6 +3165,6 @@ version = "1.4.1+1"
 # ╠═9515317f-3fdb-4b8c-8686-3d0b1a42ffe3
 # ╠═55da34ce-3e75-4726-bf37-a14d89c6a5b8
 # ╠═45ce78d4-1f23-4640-9978-c577ce492090
-# ╠═84de81f6-d3e5-433f-a94e-a8fa3aec21e3
+# ╟─84de81f6-d3e5-433f-a94e-a8fa3aec21e3
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
