@@ -183,6 +183,18 @@ end
     @test boundingbox(GalCoords, axiskeys(simg, :coords)).a ≈ GalCoords(0.0, -1.5707963267948966)
 end
 
+@testitem "Makie" begin
+    using MakieExtra
+    using SkyCoords
+
+    simg = SkyImages.load(joinpath(@__DIR__, "data/vlass.fits"))
+    heatmap(simg)
+    image(simg)
+    contour(simg)
+    contourf(simg)
+    image(simg; coordstype=GalCoords)
+end
+
 
 @testitem "" begin
     import CompatHelperLocal as CHL

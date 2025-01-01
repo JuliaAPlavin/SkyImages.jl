@@ -4,15 +4,17 @@ import ConstructionBase
 using AccessorsExtra
 using DataPipes
 using AxisKeys
+using AxisKeysExtra  # just for Makie plots?
 using SkyCoords
 using SkyCoords: lat, lon
 using FITSIO: FITS, read_header, ImageHDU
 using Interpolations
 using DirectionalStatistics: Circular
 using IntervalSets
+using Unitful
 import WCS
 import Healpix
-import RectiGrids
+using RectiGrids
 
 export ProjectedCoords, ProjectedCoordsS, eval_at_coords, boundingbox
 
@@ -21,6 +23,8 @@ include("coords.jl")
 include("rectangle.jl")
 include("wcs_helpers.jl")
 include("axkeys.jl")
+
+const KA_TYPE = KeyedArray{<:Any, 1, <:Any, <:Base.RefValue{<:Union{WCSAxkeys,HealpixAxkeys}}}
 
 
 function load(path; kwargs...)
@@ -58,6 +62,17 @@ function eval_at_coords(img, coords; order=nothing, kwargs...)
         @modify(vec(coords)) do xs
             img(Interp.(xs; order, kwargs...))
         end
+    end
+end
+
+function convert_to_rectangular_KA(img::KA_TYPE; coordstype=nothing, npix=200)
+    axk = axiskeys(img, :coords)
+    bbox = isnothing(coordstype) ? boundingbox(axk) : boundingbox(coordstype, axk)
+    @p let
+        grid(bbox; lengths=npix)
+        axk isa SkyImages.HealpixAxkeys ? Near.(__) : SkyImages.Interp.(__, order=1)
+        img(__)
+        @modify(xs -> xs .* u"rad" .|> u"°", axiskeys(__)[∗])
     end
 end
 
