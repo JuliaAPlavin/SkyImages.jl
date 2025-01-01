@@ -72,7 +72,7 @@ function convert_to_rectangular_KA(img::KA_TYPE; coordstype=nothing, npix=1024)
         grid(bbox; lengths=npix)
         axk isa SkyImages.HealpixAxkeys ? Near.(__) : SkyImages.Interp.(__, order=1)
         img(__)
-        @modify(xs -> xs .* u"rad" .|> u"°", axiskeys(__)[∗])
+        @modify(xs -> xs .* u"rad", axiskeys(__)[∗])
     end
 end
 

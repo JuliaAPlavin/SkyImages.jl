@@ -190,7 +190,7 @@ end
     using SkyCoords
 
     simg = SkyImages.load(joinpath(@__DIR__, "data/vlass.fits"))
-    v = (xlabel="ra (°)", ylabel="dec (°)")
+    v = (xlabel="ra (rad)", ylabel="dec (rad)")
     heatmap(simg)
     @test current_axis().xlabel[] == v.xlabel && current_axis().ylabel[] == v.ylabel
     image(simg)
@@ -202,7 +202,7 @@ end
     contourf(simg)
     @test current_axis().xlabel[] == v.xlabel && current_axis().ylabel[] == v.ylabel
     image(simg; coordstype=GalCoords)
-    @test current_axis().xlabel[] == "l (°)" && current_axis().ylabel[] == "b (°)"
+    @test current_axis().xlabel[] == "l (rad)" && current_axis().ylabel[] == "b (rad)"
 end
 
 
