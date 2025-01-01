@@ -10,4 +10,4 @@ It's most convenient to work with regular rectangular array, and `SkyImages` giv
 
 _Extra features such as plotting are explicitly out of scope for `SkyImages`. There are multiple commonly used plotting libraries, and we don't impose any specific choice. Examples in this notebook use `matplotlib` through `PyPlot.jl`._
 
-See the [Pluto notebook](https://aplavin.github.io/SkyImages.jl/test/notebook.jl.html) for more details and examples.
+See the [Pluto notebook](https://aplavin.github.io/SkyImages.jl/test/notebook.html) for more details and examples. _The older notebook with PyPlot examples remains available [here](https://aplavin.github.io/SkyImages.jl/test/notebook.jl.html)._
