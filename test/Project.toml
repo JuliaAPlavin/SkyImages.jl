@@ -11,7 +11,7 @@ TestItems = "1c621080-faea-4a02-84b6-bbd5e436b8fe"
 [compat]
 AxisKeys = "0.2.4"
 CompatHelperLocal = "0.1.24"
-Makie = "0.21"
+Makie = "0.22"
 RectiGrids = "0.1.10"
 SkyCoords = "1.0.1"
 TestItemRunner = "1"
